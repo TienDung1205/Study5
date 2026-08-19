@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { PlanType, Prisma } from '@prisma/client';
+import { NotificationType, PlanType, Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { AssignmentsService } from '../assignments/assignments.service';
 import { AiCoachService } from './ai-coach.service';
@@ -51,7 +51,7 @@ export class AiDailyService {
       ? { ...aiResult, usedFallback: false }
       : this.rulePlanner.createFallbackRecommendation(request);
 
-    return this.prisma.aiRecommendation.create({
+    const stored = await this.prisma.aiRecommendation.create({
       data: {
         userId,
         analysis: recommendation.analysis,
@@ -60,6 +60,15 @@ export class AiDailyService {
         usedFallback: recommendation.usedFallback,
       },
     });
+    await this.prisma.notification.create({
+      data: {
+        userId,
+        type: NotificationType.PLAN_READY,
+        title: 'Kế hoạch ngày học tiếp theo đã sẵn sàng',
+        message: 'AI Coach đã tạo ba nhịp học. Hãy chọn phương án phù hợp với thời gian và năng lượng của bạn.',
+      },
+    });
+    return stored;
   }
 
   latest(userId: string) {
@@ -71,8 +80,8 @@ export class AiDailyService {
       where: { id: recommendationId, userId },
     });
     if (!recommendation) throw new NotFoundException('Không tìm thấy đề xuất AI.');
-    const assignment = await this.assignmentsService.getToday(userId);
-    if (!assignment) throw new NotFoundException('Không tìm thấy nhiệm vụ hôm nay.');
+    const assignment = await this.assignmentsService.getNextStudyAssignment(userId);
+    if (!assignment) throw new NotFoundException('Không tìm thấy ngày học tiếp theo.');
     const updatedAssignment = await this.assignmentsService.selectPlan(userId, assignment.id, planType);
     await this.prisma.aiRecommendation.update({
       where: { id: recommendationId },

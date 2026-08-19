@@ -83,7 +83,7 @@ export class AiCoachService {
 
     if (selectedLessons.length === 0 && lessons.length > 0) {
       selectedLessons.push(lessons[0]);
-      totalMinutes = lessons[0].durationMinutes;
+      totalMinutes = Math.min(lessons[0].durationMinutes, timeLimit);
     }
 
     const titles: Record<PlanType, string> = {
@@ -113,4 +113,3 @@ export class AiCoachService {
     return `Kế hoạch cân bằng tiến độ Phase ${input.currentPhase} với thời gian rảnh ngày mai.`;
   }
 }
-

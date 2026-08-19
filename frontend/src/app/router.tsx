@@ -6,6 +6,7 @@ import { ProtectedRoute } from '../features/auth/components/ProtectedRoute';
 import { LoginPage } from '../features/auth/pages/LoginPage';
 import { RegisterPage } from '../features/auth/pages/RegisterPage';
 import { ExternalPage } from '../features/external-submissions/pages/ExternalPage';
+import { NotificationsPage } from '../features/notifications/pages/NotificationsPage';
 import { ReportsPage } from '../features/reports/pages/ReportsPage';
 import { RoadmapPage } from '../features/roadmap/pages/RoadmapPage';
 import { SettingsPage } from '../features/settings/pages/SettingsPage';
@@ -23,6 +24,7 @@ export function AppRouter() {
         <Route path="/ai-coach" element={<AiCoachPage />} />
         <Route path="/external" element={<ExternalPage />} />
         <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route element={<ProtectedRoute adminOnly />}>
           <Route path="/admin" element={<AdminPage />} />
@@ -32,4 +34,3 @@ export function AppRouter() {
     <Route path="*" element={<Navigate to="/today" replace />} />
   </Routes>;
 }
-

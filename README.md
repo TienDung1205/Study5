@@ -930,11 +930,25 @@ Dự án không sao chép video, flashcard, lời giải hoặc ngân hàng câu
 - Đăng ký, đăng nhập, access/refresh token và phân quyền học viên/admin.
 - Khóa học 24 tuần, 6 Phase, 144 ngày học và checklist cụ thể.
 - Màn hình course player với mục lục Phase/ngày học, khóa chặng và tiến độ.
-- Giao deadline hôm nay với ba nhịp Phục hồi, Tiêu chuẩn và Tăng tốc.
-- XP, level, streak, huy hiệu, vé học bù và thông báo.
+- Giao deadline hôm nay với ba nhịp Phục hồi, Tiêu chuẩn và Tăng tốc; bản Phục hồi tự rút gọn thời lượng và XP.
+- Lịch học tùy chỉnh theo ngày trong tuần; ngày nghỉ không giao bài và không làm mất streak.
+- XP, level, streak theo lịch, huy hiệu, Vé trở lại và giao diện xếp lịch học bù.
+- Study timer, thống kê thời gian và nhật ký cảm xúc hằng ngày.
+- Trung tâm thông báo cho thành tích, kế hoạch AI và nhiệm vụ quá hạn.
 - Nguồn luyện tập ngoài; nhập điểm, Part, số câu đúng và thời gian.
-- Đo độ chính xác theo Part; chuẩn mastery mặc định 80%.
-- Tự mở Phase kế tiếp khi đạt tỷ lệ hoàn thành và có checkpoint theo quy tắc.
-- AI Daily Coach gọi API bên thứ ba khi có key, tự fallback sang rule engine khi không có.
-- Báo cáo tuần, trang quản trị nội dung/người học và Swagger API.
+- Đo độ chính xác theo Part; Phase 2 trở đi bắt buộc checkpoint mastery từ 80%.
+- Tự mở Phase kế tiếp khi đạt tỷ lệ hoàn thành và mastery; backend cũng chặn truy cập bài của Phase chưa mở.
+- Khi đã hết bài trong Phase nhưng chưa đạt mastery, hệ thống tự giao checkpoint bên ngoài thay vì lặp bài cũ.
+- AI Daily Coach gọi API bên thứ ba khi có key, fallback sang rule engine khi không có và áp dụng lựa chọn cho **ngày học kế tiếp**.
+- Báo cáo tuần, mastery theo Part và danh sách học viên có nguy cơ bỏ học.
+- Trang admin chọn đúng Course/Phase, thêm, publish/ẩn, xóa có kiểm tra dữ liệu đang sử dụng.
+- Swagger API, smoke test xuyên suốt PostgreSQL và unit test cho AI/lịch học/mastery.
 - PostgreSQL + Prisma migration/seed; Docker chỉ là phương án chạy database tùy chọn.
+
+## 27. Giới hạn chủ động của sản phẩm
+
+- Không lưu hoặc sao chép ngân hàng đề TOEIC có bản quyền; người học làm bài ở nguồn bên ngoài.
+- Không cam kết chắc chắn đạt 800 điểm. Hệ thống giúp duy trì lịch, đo checkpoint và điều chỉnh khối lượng.
+- Thông báo hiện nằm trong web, chưa gửi email, SMS hoặc push notification.
+- API AI thật chỉ hoạt động sau khi cấu hình `AI_API_KEY` và `AI_MODEL`; không có key vẫn sử dụng rule engine.
+- Trước khi triển khai công khai cần đổi toàn bộ JWT/database secret, bật HTTPS, rate limit và backup PostgreSQL.

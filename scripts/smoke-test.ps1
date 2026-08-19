@@ -47,10 +47,16 @@ $recommendation = Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/ai-coach/dail
   mood = 'normal'
   tomorrowAvailableMinutes = 60
 } | ConvertTo-Json)
+$nextAssignment = Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/ai-coach/recommendations/$($recommendation.id)/select" -Headers $headers -ContentType 'application/json' -Body (@{
+  planType = 'STANDARD'
+} | ConvertTo-Json)
 $report = Invoke-RestMethod -Method Get -Uri "$ApiBaseUrl/reports/weekly" -Headers $headers
+$notifications = Invoke-RestMethod -Method Get -Uri "$ApiBaseUrl/notifications" -Headers $headers
 
 if ($recommendation.planOptions.Count -ne 3) { throw 'AI Coach did not return three plan options.' }
 if ($report.partMastery[0].accuracy -ne 0.8) { throw 'Part mastery accuracy was not calculated correctly.' }
+if ([DateTime]$nextAssignment.scheduledDate -le [DateTime]$today.scheduledDate) { throw 'AI plan was not assigned to a future study day.' }
+if (-not $notifications.Count) { throw 'Expected at least one notification.' }
 
 [PSCustomObject]@{
   Result = 'PASS'
@@ -62,4 +68,6 @@ if ($report.partMastery[0].accuracy -ne 0.8) { throw 'Part mastery accuracy was 
   SubmissionId = $submissionResponse.submission.id
   AiProvider = $recommendation.provider
   UsedFallback = $recommendation.usedFallback
+  NextStudyDate = $nextAssignment.scheduledDate
+  Notifications = $notifications.Count
 } | ConvertTo-Json

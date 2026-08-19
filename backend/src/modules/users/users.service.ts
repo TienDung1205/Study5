@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { UpdateLearningGoalDto } from './dto/update-learning-goal.dto';
 
@@ -31,7 +31,7 @@ export class UsersService {
   async updateLearningGoal(userId: string, input: UpdateLearningGoalDto) {
     const studyDays = input.studyDays ? [...new Set(input.studyDays)] : undefined;
     if (studyDays?.some((day) => day < 0 || day > 6)) {
-      throw new NotFoundException('Ngày học phải nằm trong khoảng 0-6.');
+      throw new BadRequestException('Ngày học phải nằm trong khoảng 0-6.');
     }
     return this.prisma.learningGoal.upsert({
       where: { userId },
@@ -75,4 +75,3 @@ export class UsersService {
     });
   }
 }
-

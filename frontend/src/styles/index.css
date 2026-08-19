@@ -212,6 +212,20 @@ button:disabled {
   background: #baf0c8;
 }
 
+.nav-badge {
+  display: grid;
+  place-items: center;
+  min-width: 21px;
+  height: 21px;
+  margin-left: auto;
+  padding: 0 6px;
+  color: #fff;
+  background: #e05d3d;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
 .sidebar-progress {
   display: grid;
   gap: 8px;
@@ -755,6 +769,252 @@ button:disabled {
   margin: 4px 0;
 }
 
+.rest-day-card {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  padding: 32px;
+  color: #325241;
+  background: linear-gradient(135deg, #e6f7eb, #f8fbf8);
+  border: 1px solid #b8dec4;
+  border-radius: 20px;
+}
+
+.rest-day-card h3,
+.rest-day-card p {
+  margin: 5px 0;
+}
+
+.timer-button {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  background: #b85f29 !important;
+}
+
+.recovery-panel,
+.journal-card,
+.badge-section {
+  margin-top: 22px;
+  padding: 22px;
+  background: #fff;
+  border: 1px solid #dfe7e1;
+  border-radius: 18px;
+}
+
+.recovery-panel {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) 220px auto;
+  gap: 16px;
+  align-items: end;
+}
+
+.recovery-panel > div:first-child {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 10px;
+}
+
+.recovery-panel h3,
+.recovery-panel p {
+  grid-column: 2;
+  margin: 0 0 4px;
+}
+
+.journal-card {
+  display: grid;
+  grid-template-columns: auto 1fr 170px;
+  gap: 14px;
+  align-items: start;
+}
+
+.journal-card h3,
+.journal-card p {
+  margin: 0 0 4px;
+}
+
+.journal-card textarea {
+  grid-column: 2 / -1;
+}
+
+.journal-card > button,
+.journal-card > .success-text,
+.journal-card > .form-error {
+  grid-column: 2;
+}
+
+.badge-section h3 {
+  margin-top: 0;
+}
+
+.badge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.badge-grid article {
+  display: flex;
+  gap: 12px;
+  padding: 15px;
+  background: #fff8e9;
+  border: 1px solid #efdab1;
+  border-radius: 13px;
+}
+
+.badge-grid article > span {
+  font-size: 25px;
+}
+
+.badge-grid p {
+  margin: 4px 0 0;
+  color: #728078;
+  font-size: 12px;
+}
+
+.button-with-icon {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+}
+
+.notification-list {
+  display: grid;
+  gap: 10px;
+}
+
+.notification-list article {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  padding: 18px;
+  cursor: pointer;
+  background: #eef8f1;
+  border: 1px solid #b9dec4;
+  border-radius: 15px;
+}
+
+.notification-list article.read {
+  cursor: default;
+  background: #fff;
+  border-color: #dfe7e1;
+  opacity: .75;
+}
+
+.notification-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  color: #236e4b;
+  background: #d8f0df;
+  border-radius: 50%;
+}
+
+.notification-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.notification-heading time,
+.notification-list small {
+  color: #728078;
+  font-size: 11px;
+}
+
+.notification-list p {
+  margin: 5px 0;
+  color: #526159;
+}
+
+.content-manager {
+  margin-bottom: 22px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #dfe7e1;
+  border-radius: 18px;
+}
+
+.manager-toolbar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  padding: 18px;
+  background: #edf5ef;
+}
+
+.manager-actions,
+.lesson-admin-list > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid #e4ebe6;
+}
+
+.manager-actions > :first-child,
+.lesson-admin-list > div > span {
+  flex: 1;
+}
+
+.manager-actions button,
+.lesson-admin-list button {
+  padding: 8px 11px;
+  cursor: pointer;
+  background: #edf5ef;
+  border: 1px solid #c6d8cd;
+  border-radius: 8px;
+}
+
+.lesson-admin-list span {
+  display: grid;
+  gap: 3px;
+}
+
+.lesson-admin-list small {
+  color: #728078;
+}
+
+.danger-button {
+  color: #a02e28 !important;
+  background: #fff2f1 !important;
+  border-color: #ecc4c1 !important;
+}
+
+.study-days {
+  display: flex;
+  grid-column: 1 / -1;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid #dfe7e1;
+  border-radius: 12px;
+}
+
+.study-days legend {
+  padding: 0 5px;
+  color: #405047;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.study-days button {
+  width: 42px;
+  height: 42px;
+  cursor: pointer;
+  background: #fff;
+  border: 1px solid #cbd8cf;
+  border-radius: 50%;
+}
+
+.study-days button.selected {
+  color: #fff;
+  background: #1f7550;
+  border-color: #1f7550;
+}
+
 .coach-controls,
 .settings-form,
 .submission-form,
@@ -968,5 +1228,23 @@ textarea {
     max-height: 440px;
     border-right: 0;
     border-bottom: 1px solid #dfe7e1;
+  }
+
+  .recovery-panel,
+  .journal-card,
+  .manager-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .journal-card textarea,
+  .journal-card > button,
+  .journal-card > .success-text,
+  .journal-card > .form-error {
+    grid-column: auto;
+  }
+
+  .notification-heading {
+    display: grid;
+    gap: 3px;
   }
 }

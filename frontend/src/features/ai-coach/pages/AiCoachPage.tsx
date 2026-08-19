@@ -1,14 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { getJson, postJson } from '../../../services/api-client';
-import type { AiRecommendation, PlanType } from '../../../types/domain';
+import type { AiRecommendation, DailyAssignment, PlanType } from '../../../types/domain';
 
 const typeMap: Record<string, PlanType> = { recovery: 'RECOVERY', standard: 'STANDARD', accelerated: 'ACCELERATED' };
 export function AiCoachPage() {
   const queryClient = useQueryClient(); const [mood, setMood] = useState('normal'); const [minutes, setMinutes] = useState(60);
   const latest = useQuery({ queryKey: ['ai-latest'], queryFn: () => getJson<AiRecommendation | null>('/ai-coach/recommendations/latest') });
   const analyze = useMutation({ mutationFn: () => postJson<AiRecommendation>('/ai-coach/daily-analysis', { mood, tomorrowAvailableMinutes: minutes }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ai-latest'] }) });
-  const select = useMutation({ mutationFn: ({ id, planType }: { id: string; planType: PlanType }) => postJson(`/ai-coach/recommendations/${id}/select`, { planType }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['today'] }) });
+  const select = useMutation({ mutationFn: ({ id, planType }: { id: string; planType: PlanType }) => postJson<DailyAssignment>(`/ai-coach/recommendations/${id}/select`, { planType }), onSuccess: () => Promise.all([queryClient.invalidateQueries({ queryKey: ['today'] }), queryClient.invalidateQueries({ queryKey: ['recent-assignments'] })]) });
   const recommendation = analyze.data ?? latest.data;
   return <section><header className="page-header"><div><p className="eyebrow">AI DAILY COACH</p><h2>Chuẩn bị ngày mai</h2>
     <p className="muted">Không có API key hệ thống sẽ dùng rule engine an toàn.</p></div></header>
@@ -16,6 +16,8 @@ export function AiCoachPage() {
       <label>Thời gian ngày mai<input type="number" min={20} max={180} value={minutes} onChange={(e) => setMinutes(Number(e.target.value))} /></label>
       <button className="primary-button" onClick={() => analyze.mutate()} disabled={analyze.isPending}>{analyze.isPending ? 'Đang phân tích...' : 'Phân tích hôm nay'}</button></div>
     {analyze.error && <p className="form-error">{analyze.error.message}</p>}
+    {select.isSuccess && <p className="success-text">Đã áp dụng cho ngày học {new Date(select.data.scheduledDate).toLocaleDateString('vi-VN')}.</p>}
+    {select.error && <p className="form-error">{select.error.message}</p>}
     {recommendation ? <><div className="coach-insight"><strong>Nhận xét hôm nay</strong><p>{recommendation.analysis.reason}</p>
       <small>Điểm mạnh: {recommendation.analysis.strength} · Cần chú ý: {recommendation.analysis.weakness} · Nguồn: {recommendation.provider}</small></div>
       <div className="plan-grid">{recommendation.planOptions.map((plan) => <article className={`plan-card${plan.recommended ? ' recommended' : ''}`} key={plan.type}>
@@ -24,4 +26,3 @@ export function AiCoachPage() {
       : <div className="empty-state">Chưa có phân tích. Hoàn thành nhiệm vụ hôm nay rồi tạo kế hoạch.</div>}
   </section>;
 }
-

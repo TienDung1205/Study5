@@ -24,9 +24,19 @@ export class AssignmentsController {
     return this.assignmentsService.getToday(user.id);
   }
 
+  @Get('recent')
+  recent(@CurrentUser() user: AuthUser) {
+    return this.assignmentsService.getRecent(user.id);
+  }
+
   @Post('today/generate')
   generateToday(@CurrentUser() user: AuthUser, @Body() input: GenerateTodayDto) {
     return this.assignmentsService.generateToday(user.id, input.planType);
+  }
+
+  @Get('next-study-day')
+  getNextStudyDay(@CurrentUser() user: AuthUser) {
+    return this.assignmentsService.getNextStudyAssignment(user.id);
   }
 
   @Patch(':id/select-plan')
@@ -72,4 +82,3 @@ export class AssignmentsController {
     return this.assignmentsService.upsertJournal(user.id, input.content, input.mood);
   }
 }
-

@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsDateString, IsInt, IsOptional, Max, Min } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsDateString, IsInt, IsOptional, Max, Min } from 'class-validator';
 
 export class UpdateLearningGoalDto {
   @ApiPropertyOptional({ example: 500 })
@@ -31,6 +31,8 @@ export class UpdateLearningGoalDto {
   @ApiPropertyOptional({ example: [1, 2, 3, 4, 5, 6] })
   @IsOptional()
   @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(7)
   @IsInt({ each: true })
   studyDays?: number[];
 
@@ -41,4 +43,3 @@ export class UpdateLearningGoalDto {
   @Max(23)
   preferredHour?: number;
 }
-

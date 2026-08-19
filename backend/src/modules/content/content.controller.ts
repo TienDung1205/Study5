@@ -48,10 +48,14 @@ export class AdminContentController {
   createCourse(@Body() input: CreateCourseDto) { return this.contentService.createCourse(input); }
   @Patch('courses/:id')
   updateCourse(@Param('id') id: string, @Body() input: UpdateCourseDto) { return this.contentService.updateCourse(id, input); }
+  @Delete('courses/:id')
+  deleteCourse(@Param('id') id: string) { return this.contentService.deleteCourse(id); }
   @Post('phases')
   createPhase(@Body() input: CreatePhaseDto) { return this.contentService.createPhase(input); }
   @Patch('phases/:id')
   updatePhase(@Param('id') id: string, @Body() input: UpdatePhaseDto) { return this.contentService.updatePhase(id, input); }
+  @Delete('phases/:id')
+  deletePhase(@Param('id') id: string) { return this.contentService.deletePhase(id); }
   @Post('lessons')
   createLesson(@Body() input: CreateLessonDto) { return this.contentService.createLesson(input); }
   @Patch('lessons/:id')
@@ -59,4 +63,3 @@ export class AdminContentController {
   @Delete('lessons/:id')
   deleteLesson(@Param('id') id: string) { return this.contentService.deleteLesson(id); }
 }
-

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { AssignmentStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
+import { MASTERY_THRESHOLD } from '../../common/learning/learning-rules';
 
 @Injectable()
 export class ReportsService {
@@ -51,7 +52,7 @@ export class ReportsService {
         accuracy: submission.accuracy,
         correctAnswers: submission.correctAnswers,
         totalQuestions: submission.totalQuestions,
-        mastered: (submission.accuracy ?? 0) >= 0.8,
+        mastered: (submission.accuracy ?? 0) >= MASTERY_THRESHOLD,
       })),
       streakCount: progress?.streakCount ?? 0,
       totalXp: progress?.totalXp ?? 0,

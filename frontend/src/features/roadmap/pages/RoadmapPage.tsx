@@ -39,7 +39,7 @@ export function RoadmapPage() {
           const active = roadmap.data.currentPhaseId === phase.id;
           const phaseProgress = phase.lessons.length ? Math.round((phase.completedLessons / phase.lessons.length) * 100) : 0;
           return <details key={phase.id} open={active || phase.lessons.some((lesson) => lesson.id === selectedLesson?.id)} className="curriculum-phase">
-            <summary><span><small>PHASE {phase.position}</small><strong>{phase.title}</strong><em>{phase.unlocked ? `${phase.completedLessons}/${phase.lessons.length} bài · ${phaseProgress}%` : 'Hoàn thành Phase trước để mở'}</em></span>{phase.unlocked ? <ChevronRight size={18} /> : <LockKeyhole size={17} />}</summary>
+            <summary><span><small>PHASE {phase.position}</small><strong>{phase.title}</strong><em>{phase.unlocked ? `${phase.completedLessons}/${phase.lessons.length} bài · ${phaseProgress}%${phase.masteryAccuracy !== null ? ` · Mastery ${Math.round(phase.masteryAccuracy * 100)}%` : ''}` : 'Hoàn thành Phase trước để mở'}</em></span>{phase.unlocked ? <ChevronRight size={18} /> : <LockKeyhole size={17} />}</summary>
             <div className="curriculum-lessons">{phase.lessons.map((lesson) => <button type="button" disabled={!phase.unlocked} className={lesson.id === selectedLesson?.id ? 'selected' : ''} key={lesson.id} onClick={() => setSearchParams({ lesson: lesson.id })}>
               <span className={`lesson-state${lesson.completed ? ' done' : ''}`}>{lesson.completed ? <Check size={13} /> : active ? <PlayCircle size={14} /> : <LockKeyhole size={13} />}</span>
               <span><strong>{lesson.title}</strong><small>{lesson.durationMinutes} phút · {skillLabel(lesson.skill)}</small></span></button>)}</div>

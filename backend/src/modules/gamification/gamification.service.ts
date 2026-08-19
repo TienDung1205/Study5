@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { NotificationType, Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
+import { isNextScheduledStudyDay } from '../../common/learning/learning-rules';
 
 @Injectable()
 export class GamificationService {
@@ -28,19 +29,21 @@ export class GamificationService {
   }
 
   async recordCompletedDay(userId: string, completedAt: Date) {
-    const progress = await this.prisma.learnerProgress.upsert({
-      where: { userId },
-      update: {},
-      create: { userId },
-    });
+    const [progress, goal] = await Promise.all([
+      this.prisma.learnerProgress.upsert({ where: { userId }, update: {}, create: { userId } }),
+      this.prisma.learningGoal.findUnique({
+        where: { userId },
+        include: { user: { select: { timezone: true } } },
+      }),
+    ]);
     const completedDate = this.toUtcDate(completedAt);
     const lastDate = progress.lastCompletedDate ? this.toUtcDate(progress.lastCompletedDate) : null;
     if (lastDate?.getTime() === completedDate.getTime()) return progress;
 
-    const differenceDays = lastDate
-      ? Math.round((completedDate.getTime() - lastDate.getTime()) / 86_400_000)
-      : null;
-    const streakCount = differenceDays === 1 ? progress.streakCount + 1 : 1;
+    const followsSchedule = lastDate && goal
+      ? isNextScheduledStudyDay(lastDate, completedDate, goal.studyDays, goal.user.timezone)
+      : false;
+    const streakCount = followsSchedule ? progress.streakCount + 1 : 1;
     const updated = await this.prisma.learnerProgress.update({
       where: { userId },
       data: {
@@ -50,8 +53,8 @@ export class GamificationService {
       },
     });
 
-    await this.tryAwardBadge(userId, 'FIRST_WIN');
-    if (streakCount >= 3) await this.tryAwardBadge(userId, 'THREE_DAY_STREAK');
+    await this.awardBadge(userId, 'FIRST_WIN');
+    if (streakCount >= 3) await this.awardBadge(userId, 'THREE_DAY_STREAK');
     return updated;
   }
 
@@ -68,7 +71,7 @@ export class GamificationService {
     });
   }
 
-  private async tryAwardBadge(userId: string, badgeCode: string): Promise<void> {
+  async awardBadge(userId: string, badgeCode: string): Promise<void> {
     const badge = await this.prisma.badge.findUnique({ where: { code: badgeCode } });
     if (!badge) return;
     const existing = await this.prisma.learnerBadge.findUnique({
@@ -91,5 +94,5 @@ export class GamificationService {
   private toUtcDate(value: Date): Date {
     return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()));
   }
-}
 
+}

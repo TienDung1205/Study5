@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { AssignmentStatus, NotificationType, PlanType, Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
+import { isStudyDay, MASTERY_THRESHOLD } from '../../common/learning/learning-rules';
 import { GamificationService } from '../gamification/gamification.service';
 
 const PLAN_MULTIPLIER: Record<PlanType, number> = {
@@ -31,8 +32,38 @@ export class AssignmentsService {
     return this.generateForDate(userId, this.startOfUtcDay(new Date()), planType);
   }
 
+  async getNextStudyAssignment(userId: string, planType: PlanType = PlanType.STANDARD) {
+    const goal = await this.prisma.learningGoal.findUnique({
+      where: { userId },
+      include: { user: { select: { timezone: true } } },
+    });
+    if (!goal) throw new BadRequestException('Hãy thiết lập mục tiêu học tập trước.');
+    const candidate = this.startOfUtcDay(new Date());
+    for (let offset = 1; offset <= 7; offset += 1) {
+      candidate.setUTCDate(candidate.getUTCDate() + 1);
+      if (isStudyDay(candidate, goal.studyDays, goal.user.timezone)) {
+        return this.generateForDate(userId, new Date(candidate), planType);
+      }
+    }
+    throw new BadRequestException('Lịch học chưa có ngày học nào trong tuần.');
+  }
+
+  getRecent(userId: string) {
+    const from = this.startOfUtcDay(new Date());
+    from.setUTCDate(from.getUTCDate() - 30);
+    return this.prisma.dailyAssignment.findMany({
+      where: { userId, scheduledDate: { gte: from } },
+      orderBy: { scheduledDate: 'desc' },
+      take: 30,
+      include: this.assignmentInclude,
+    });
+  }
+
   async selectPlan(userId: string, assignmentId: string, planType: PlanType) {
     const assignment = await this.findOwnedAssignment(userId, assignmentId);
+    if (assignment.status === AssignmentStatus.EXCUSED) {
+      throw new ConflictException('Không thể chọn kế hoạch cho ngày nghỉ.');
+    }
     if (assignment.items.some((item) => item.startedAt || item.completedAt)) {
       throw new ConflictException('Không thể đổi kế hoạch sau khi đã bắt đầu học.');
     }
@@ -69,6 +100,9 @@ export class AssignmentsService {
     if (!assignment) throw new NotFoundException('Không thể tạo nhiệm vụ hôm nay.');
     if (assignment.completedAt) {
       throw new ConflictException('Nhiệm vụ hôm nay đã hoàn thành, không thể thêm bài luyện mới.');
+    }
+    if (assignment.status === AssignmentStatus.EXCUSED) {
+      throw new ConflictException('Hôm nay là ngày nghỉ, không thể thêm bài luyện bắt buộc.');
     }
     const existingItem = assignment.items.find((item) => item.externalResourceId === resourceId);
     if (existingItem) return assignment;
@@ -116,25 +150,37 @@ export class AssignmentsService {
     if (!progress || progress.recoveryTokens < 1) {
       throw new BadRequestException('Bạn không còn Vé trở lại để xếp lại nhiệm vụ.');
     }
-    return this.prisma.$transaction(async (tx) => {
-      await tx.learnerProgress.update({
-        where: { userId },
-        data: { recoveryTokens: { decrement: 1 } },
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        await tx.learnerProgress.update({
+          where: { userId },
+          data: { recoveryTokens: { decrement: 1 } },
+        });
+        return tx.dailyAssignment.update({
+          where: { id: assignmentId },
+          data: {
+            scheduledDate,
+            dueAt: this.endOfUtcDay(scheduledDate),
+            status: AssignmentStatus.RESCHEDULED,
+          },
+          include: this.assignmentInclude,
+        });
       });
-      return tx.dailyAssignment.update({
-        where: { id: assignmentId },
-        data: {
-          scheduledDate,
-          dueAt: this.endOfUtcDay(scheduledDate),
-          status: AssignmentStatus.RESCHEDULED,
-        },
-        include: this.assignmentInclude,
-      });
-    });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictException('Ngày học bù đã có nhiệm vụ khác. Hãy chọn ngày khác.');
+      }
+      throw error;
+    }
   }
 
   async startSession(userId: string, assignmentItemId?: string) {
     if (assignmentItemId) await this.findOwnedItem(userId, assignmentItemId);
+    const openSession = await this.prisma.studySession.findFirst({
+      where: { userId, assignmentItemId, endedAt: null },
+      orderBy: { startedAt: 'desc' },
+    });
+    if (openSession) return openSession;
     return this.prisma.studySession.create({ data: { userId, assignmentItemId } });
   }
 
@@ -157,12 +203,25 @@ export class AssignmentsService {
   }
 
   async markOverdueAssignments(): Promise<number> {
-    const result = await this.prisma.dailyAssignment.updateMany({
+    const overdue = await this.prisma.dailyAssignment.findMany({
       where: {
         dueAt: { lt: new Date() },
         status: { in: [AssignmentStatus.SCHEDULED, AssignmentStatus.AVAILABLE, AssignmentStatus.IN_PROGRESS] },
       },
+      select: { id: true, userId: true, scheduledDate: true },
+    });
+    if (!overdue.length) return 0;
+    const result = await this.prisma.dailyAssignment.updateMany({
+      where: { id: { in: overdue.map((assignment) => assignment.id) } },
       data: { status: AssignmentStatus.OVERDUE },
+    });
+    await this.prisma.notification.createMany({
+      data: overdue.map((assignment) => ({
+        userId: assignment.userId,
+        type: NotificationType.DEADLINE,
+        title: 'Nhiệm vụ đã quá hạn',
+        message: `Nhiệm vụ ngày ${assignment.scheduledDate.toLocaleDateString('vi-VN')} đã quá hạn. Bạn có thể dùng Vé trở lại để xếp lịch học bù.`,
+      })),
     });
     return result.count;
   }
@@ -170,8 +229,14 @@ export class AssignmentsService {
   private async generateForDate(userId: string, date: Date, planType: PlanType) {
     const existing = await this.findByDate(userId, date);
     if (existing) return existing;
-    const goal = await this.prisma.learningGoal.findUnique({ where: { userId } });
+    const goal = await this.prisma.learningGoal.findUnique({
+      where: { userId },
+      include: { user: { select: { timezone: true } } },
+    });
     if (!goal?.currentPhaseId) throw new BadRequestException('Hãy thiết lập khóa học và Phase hiện tại.');
+    if (!isStudyDay(date, goal.studyDays, goal.user.timezone)) {
+      return this.createRestAssignment(userId, goal.currentPhaseId, date, planType);
+    }
     const items = await this.buildItems(userId, goal.currentPhaseId, planType);
     if (!items.length) throw new NotFoundException('Phase hiện tại chưa có bài học được phát hành.');
     try {
@@ -209,7 +274,22 @@ export class AssignmentsService {
       select: { lessonId: true },
     });
     const completedIds = new Set(completedItems.map((item) => item.lessonId));
-    const ordered = [...lessons.filter((lesson) => !completedIds.has(lesson.id)), ...lessons.filter((lesson) => completedIds.has(lesson.id))];
+    const ordered = lessons.filter((lesson) => !completedIds.has(lesson.id));
+    if (!ordered.length) {
+      const checkpoint = await this.prisma.externalResource.findFirst({
+        where: { isActive: true, resourceType: { in: ['EXTERNAL_PRACTICE', 'EXTERNAL_MOCK_TEST'] } },
+        orderBy: [{ resourceType: 'desc' }, { createdAt: 'asc' }],
+      });
+      if (!checkpoint) return [];
+      return [{
+        externalResourceId: checkpoint.id,
+        title: `Checkpoint · ${checkpoint.name}`,
+        durationMinutes: checkpoint.estimatedMinutes,
+        xpReward: checkpoint.resourceType === 'EXTERNAL_MOCK_TEST' ? 80 : 40,
+        position: 1,
+        isRequired: true,
+      }];
+    }
     const selected = [];
     let total = 0;
     for (const lesson of ordered) {
@@ -219,14 +299,17 @@ export class AssignmentsService {
       }
       if (total >= limit) break;
     }
-    return selected.map((lesson, index) => ({
+    return selected.map((lesson, index) => {
+      const assignedMinutes = Math.min(lesson.durationMinutes, limit);
+      return {
       lessonId: lesson.id,
-      title: lesson.title,
-      durationMinutes: lesson.durationMinutes,
-      xpReward: lesson.xpReward,
+      title: assignedMinutes < lesson.durationMinutes ? `${lesson.title} · Bản rút gọn` : lesson.title,
+      durationMinutes: assignedMinutes,
+      xpReward: Math.max(10, Math.round(lesson.xpReward * (assignedMinutes / lesson.durationMinutes))),
       position: index + 1,
       isRequired: true,
-    }));
+      };
+    });
   }
 
   private async finalizeAssignmentIfReady(userId: string, assignmentId: string) {
@@ -271,10 +354,11 @@ export class AssignmentsService {
     if (completionRate < phase.requiredRate) return;
 
     if (phase.position > 1) {
-      const checkpointCount = await this.prisma.externalSubmission.count({
-        where: { userId, assignmentItem: { assignment: { phaseId } } },
+      const masteredCheckpoint = await this.prisma.externalSubmission.findFirst({
+        where: { userId, accuracy: { gte: MASTERY_THRESHOLD }, assignmentItem: { assignment: { phaseId } } },
+        select: { id: true },
       });
-      if (!checkpointCount) return;
+      if (!masteredCheckpoint) return;
     }
 
     const nextPhase = await this.prisma.phase.findUnique({
@@ -292,6 +376,7 @@ export class AssignmentsService {
         },
       }),
     ]);
+    if (phase.position === 1) await this.gamification.awardBadge(userId, 'PHASE_ONE_FINISHER');
   }
 
   private findByDate(userId: string, date: Date) {
@@ -299,6 +384,27 @@ export class AssignmentsService {
       where: { userId_scheduledDate: { userId, scheduledDate: date } },
       include: this.assignmentInclude,
     });
+  }
+
+  private async createRestAssignment(userId: string, phaseId: string, date: Date, planType: PlanType) {
+    try {
+      return await this.prisma.dailyAssignment.create({
+        data: {
+          userId,
+          phaseId,
+          scheduledDate: date,
+          dueAt: this.endOfUtcDay(date),
+          planType,
+          status: AssignmentStatus.EXCUSED,
+        },
+        include: this.assignmentInclude,
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        return this.findByDate(userId, date);
+      }
+      throw error;
+    }
   }
 
   private async findOwnedAssignment(userId: string, assignmentId: string) {
