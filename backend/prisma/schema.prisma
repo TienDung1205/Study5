@@ -1,0 +1,330 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  LEARNER
+  ADMIN
+}
+
+enum AssignmentStatus {
+  SCHEDULED
+  AVAILABLE
+  IN_PROGRESS
+  SUBMITTED
+  COMPLETED
+  OVERDUE
+  RESCHEDULED
+  EXCUSED
+}
+
+enum PlanType {
+  RECOVERY
+  STANDARD
+  ACCELERATED
+}
+
+enum ResourceType {
+  ARTICLE
+  VIDEO
+  AUDIO
+  FLASHCARD
+  DOCUMENT
+  EXTERNAL_PRACTICE
+  EXTERNAL_MOCK_TEST
+}
+
+enum SkillType {
+  VOCABULARY
+  GRAMMAR
+  LISTENING
+  READING
+  REVIEW
+  HABIT
+}
+
+enum NotificationType {
+  DEADLINE
+  ACHIEVEMENT
+  PLAN_READY
+  SYSTEM
+}
+
+model User {
+  id                  String               @id @default(cuid())
+  email               String               @unique
+  passwordHash        String
+  refreshTokenHash    String?
+  displayName         String
+  role                UserRole             @default(LEARNER)
+  timezone            String               @default("Asia/Bangkok")
+  isActive            Boolean              @default(true)
+  learningGoal        LearningGoal?
+  progress            LearnerProgress?
+  assignments         DailyAssignment[]
+  studySessions       StudySession[]
+  learningJournals    LearningJournal[]
+  externalSubmissions ExternalSubmission[]
+  aiRecommendations   AiRecommendation[]
+  xpTransactions      XpTransaction[]
+  badges              LearnerBadge[]
+  notifications       Notification[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+}
+
+model LearningGoal {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  courseId       String?
+  currentPhaseId String?
+  targetScore    Int      @default(800)
+  currentScore   Int?
+  examDate       DateTime?
+  dailyMinutes   Int      @default(60)
+  studyDays      Int[]    @default([1, 2, 3, 4, 5, 6])
+  preferredHour  Int      @default(20)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course         Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  currentPhase   Phase?   @relation(fields: [currentPhaseId], references: [id], onDelete: SetNull)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model LearnerProgress {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  totalXp           Int       @default(0)
+  level             Int       @default(1)
+  streakCount       Int       @default(0)
+  longestStreak     Int       @default(0)
+  recoveryTokens    Int       @default(2)
+  lastCompletedDate DateTime?
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt         DateTime  @updatedAt
+}
+
+model Course {
+  id            String         @id @default(cuid())
+  title         String
+  slug          String         @unique
+  description   String?
+  targetScore   Int            @default(800)
+  durationWeeks Int            @default(24)
+  isPublished   Boolean        @default(false)
+  phases        Phase[]
+  learningGoals LearningGoal[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Phase {
+  id            String            @id @default(cuid())
+  courseId      String
+  title         String
+  description   String?
+  position      Int
+  durationDays  Int
+  requiredRate  Float             @default(0.8)
+  course        Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons       Lesson[]
+  assignments   DailyAssignment[]
+  learningGoals LearningGoal[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@unique([courseId, position])
+}
+
+model Lesson {
+  id              String           @id @default(cuid())
+  phaseId         String
+  title           String
+  description     String?
+  skill           SkillType
+  resourceType    ResourceType
+  content         String?
+  contentUrl      String?
+  durationMinutes Int
+  xpReward        Int              @default(20)
+  position        Int
+  isPublished     Boolean          @default(false)
+  phase           Phase            @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  assignmentItems AssignmentItem[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@unique([phaseId, position])
+  @@index([phaseId, skill])
+}
+
+model DailyAssignment {
+  id            String           @id @default(cuid())
+  userId        String
+  phaseId       String?
+  scheduledDate DateTime
+  dueAt         DateTime
+  planType      PlanType         @default(STANDARD)
+  status        AssignmentStatus @default(SCHEDULED)
+  completedAt   DateTime?
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phase         Phase?           @relation(fields: [phaseId], references: [id], onDelete: SetNull)
+  items         AssignmentItem[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@unique([userId, scheduledDate])
+  @@index([status, dueAt])
+}
+
+model AssignmentItem {
+  id                 String              @id @default(cuid())
+  assignmentId       String
+  lessonId           String?
+  externalResourceId String?
+  title              String
+  durationMinutes    Int
+  xpReward           Int                 @default(20)
+  isRequired         Boolean             @default(true)
+  position           Int
+  startedAt          DateTime?
+  completedAt        DateTime?
+  assignment         DailyAssignment     @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  lesson             Lesson?             @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  externalResource   ExternalResource?   @relation(fields: [externalResourceId], references: [id], onDelete: SetNull)
+  externalSubmission ExternalSubmission?
+  studySessions      StudySession[]
+
+  @@unique([assignmentId, position])
+}
+
+model StudySession {
+  id               String          @id @default(cuid())
+  userId           String
+  assignmentItemId String?
+  startedAt        DateTime        @default(now())
+  endedAt          DateTime?
+  durationSeconds  Int             @default(0)
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignmentItem   AssignmentItem? @relation(fields: [assignmentItemId], references: [id], onDelete: SetNull)
+
+  @@index([userId, startedAt])
+}
+
+model LearningJournal {
+  id        String   @id @default(cuid())
+  userId    String
+  entryDate DateTime
+  content   String
+  mood      String?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, entryDate])
+}
+
+model ExternalResource {
+  id               String               @id @default(cuid())
+  name             String
+  url              String
+  provider         String
+  resourceType     ResourceType
+  skill            SkillType?
+  estimatedMinutes Int
+  requiresLogin    Boolean              @default(false)
+  isActive         Boolean              @default(true)
+  lastCheckedAt    DateTime?
+  assignmentItems  AssignmentItem[]
+  submissions      ExternalSubmission[]
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+}
+
+model ExternalSubmission {
+  id                String           @id @default(cuid())
+  userId            String
+  resourceId        String
+  assignmentItemId  String           @unique
+  listeningScore    Int?
+  readingScore      Int?
+  totalScore        Int?
+  toeicPart         String?
+  correctAnswers    Int?
+  totalQuestions    Int?
+  accuracy          Float?
+  completionMinutes Int?
+  weakParts         String[]
+  evidenceUrl       String?
+  learnerNote       String?
+  submittedAt       DateTime         @default(now())
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resource          ExternalResource @relation(fields: [resourceId], references: [id], onDelete: Restrict)
+  assignmentItem    AssignmentItem   @relation(fields: [assignmentItemId], references: [id], onDelete: Cascade)
+}
+
+model XpTransaction {
+  id        String   @id @default(cuid())
+  userId    String
+  amount    Int
+  reason    String
+  sourceId  String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, reason, sourceId])
+  @@index([userId, createdAt])
+}
+
+model Badge {
+  id          String         @id @default(cuid())
+  code        String         @unique
+  name        String
+  description String
+  icon        String
+  learners    LearnerBadge[]
+  createdAt   DateTime       @default(now())
+}
+
+model LearnerBadge {
+  id       String   @id @default(cuid())
+  userId   String
+  badgeId  String
+  earnedAt DateTime @default(now())
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge    Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+}
+
+model AiRecommendation {
+  id               String   @id @default(cuid())
+  userId           String
+  analysis         Json
+  planOptions      Json
+  provider         String
+  model            String?
+  usedFallback     Boolean  @default(false)
+  selectedPlanType PlanType?
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  readAt    DateTime?
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime         @default(now())
+
+  @@index([userId, readAt, createdAt])
+}

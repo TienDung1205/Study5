@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+*.local
+
+# Vite and TypeScript build output
+dist/
+build/
+coverage/
+*.tsbuildinfo
+.vite/
+vite.config.*.timestamp-*
+
+# Tests and caches
+test-results/
+playwright-report/
+blob-report/
+.nyc_output/
+.cache/
+.eslintcache
+.stylelintcache
+
+# Logs and process files
+logs/
+*.log
+*.pid
+*.pid.lock
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Locally generated public uploads
+public/uploads/
+
+# Temporary and editor files
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+.fleet/
+.history/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Private certificates
+*.pem
+*.key
+*.p12
+*.pfx
