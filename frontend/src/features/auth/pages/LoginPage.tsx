@@ -17,7 +17,7 @@ export function LoginPage() {
   }
   return <main className="auth-page"><form className="auth-card" onSubmit={submit}>
     <p className="eyebrow">TOEIC QUEST 800</p><h1>Tiếp tục hành trình</h1>
-    <p className="muted">Đăng nhập để xem nhiệm vụ hôm nay.</p>
+    <p className="muted">Đăng nhập để tiếp tục bài học trong lộ trình.</p>
     <label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label>
     <label>Mật khẩu<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required /></label>
     {error && <p className="form-error">{error}</p>}
@@ -25,4 +25,3 @@ export function LoginPage() {
     <p>Chưa có tài khoản? <Link to="/register">Đăng ký</Link></p>
   </form></main>;
 }
-

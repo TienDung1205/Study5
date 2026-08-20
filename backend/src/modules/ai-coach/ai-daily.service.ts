@@ -21,22 +21,40 @@ export class AiDailyService {
     if (!goal?.currentPhaseId) throw new BadRequestException('Học viên chưa có Phase hiện tại.');
     const assignment = await this.assignmentsService.getToday(userId);
     if (!assignment) throw new NotFoundException('Không tìm thấy nhiệm vụ hôm nay.');
-    const latestSubmission = await this.prisma.externalSubmission.findFirst({
-      where: { userId },
-      orderBy: { submittedAt: 'desc' },
-    });
+    const [latestSubmission, practiceAttempts] = await Promise.all([
+      this.prisma.externalSubmission.findFirst({
+        where: { userId },
+        orderBy: { submittedAt: 'desc' },
+      }),
+      this.prisma.miniPracticeAttempt.findMany({
+        where: { userId },
+        include: { lesson: { select: { skill: true } } },
+        orderBy: { submittedAt: 'desc' },
+        take: 20,
+      }),
+    ]);
     const lessons = await this.prisma.lesson.findMany({
       where: { phaseId: goal.currentPhaseId, isPublished: true },
       orderBy: { position: 'asc' },
     });
     const requiredItems = assignment.items.filter((item) => item.isRequired);
     const completedItems = requiredItems.filter((item) => item.completedAt);
+    const skillPerformance = new Map<string, { correct: number; total: number }>();
+    for (const attempt of practiceAttempts) {
+      const current = skillPerformance.get(attempt.lesson.skill) ?? { correct: 0, total: 0 };
+      current.correct += attempt.correctAnswers;
+      current.total += attempt.totalQuestions;
+      skillPerformance.set(attempt.lesson.skill, current);
+    }
+    const internalWeakSkills = Array.from(skillPerformance.entries())
+      .filter(([, performance]) => performance.total > 0 && performance.correct / performance.total < 0.8)
+      .map(([skill, performance]) => `${skill} mini practice ${Math.round((performance.correct / performance.total) * 100)}%`);
     const request = {
       currentPhase: assignment.phase?.position ?? 1,
       targetScore: goal.targetScore,
       completionRate: requiredItems.length ? completedItems.length / requiredItems.length : 0,
       studyMinutes: completedItems.reduce((sum, item) => sum + item.durationMinutes, 0),
-      weakParts: latestSubmission?.weakParts ?? [],
+      weakParts: Array.from(new Set([...(latestSubmission?.weakParts ?? []), ...internalWeakSkills])),
       mood: input.mood,
       tomorrowAvailableMinutes: input.tomorrowAvailableMinutes ?? goal.dailyMinutes,
       candidateLessons: lessons.map((lesson) => ({

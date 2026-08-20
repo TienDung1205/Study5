@@ -1,4 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { UserRole } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import {
   CreateCourseDto,
@@ -13,7 +14,8 @@ import {
 export class ContentService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getRoadmap(userId: string) {
+  async getRoadmap(userId: string, role: UserRole) {
+    const isAdmin = role === UserRole.ADMIN;
     const goal = await this.prisma.learningGoal.findUnique({ where: { userId } });
     const course = goal?.courseId
       ? await this.prisma.course.findUnique({
@@ -21,7 +23,7 @@ export class ContentService {
           include: {
             phases: {
               orderBy: { position: 'asc' },
-              include: { lessons: { where: { isPublished: true }, orderBy: { position: 'asc' } } },
+              include: { lessons: { where: isAdmin ? undefined : { isPublished: true }, orderBy: { position: 'asc' } } },
             },
           },
         })
@@ -30,7 +32,7 @@ export class ContentService {
           include: {
             phases: {
               orderBy: { position: 'asc' },
-              include: { lessons: { where: { isPublished: true }, orderBy: { position: 'asc' } } },
+              include: { lessons: { where: isAdmin ? undefined : { isPublished: true }, orderBy: { position: 'asc' } } },
             },
           },
         });
@@ -57,6 +59,7 @@ export class ContentService {
     const currentPhasePosition = course.phases.find((phase) => phase.id === goal?.currentPhaseId)?.position ?? 1;
     return {
       ...course,
+      durationWeeks: goal?.estimatedWeeks ?? course.durationWeeks,
       currentPhaseId: goal?.currentPhaseId,
       phases: course.phases.map((phase) => ({
         ...phase,
@@ -67,12 +70,21 @@ export class ContentService {
         completedLessons: phase.lessons.filter((lesson) => completedLessonIds.has(lesson.id)).length,
         checkpointSubmitted: masteryByPhase.has(phase.id),
         masteryAccuracy: masteryByPhase.get(phase.id) ?? null,
-        unlocked: phase.position <= currentPhasePosition,
+        unlocked: isAdmin || phase.position <= currentPhasePosition,
+        skipped: phase.position < (goal?.startingPhasePosition ?? 1),
       })),
     };
   }
 
-  async getLesson(userId: string, lessonId: string) {
+  async getLesson(userId: string, lessonId: string, role: UserRole) {
+    if (role === UserRole.ADMIN) {
+      const lesson = await this.prisma.lesson.findUnique({
+        where: { id: lessonId },
+        include: { phase: { select: { id: true, title: true, position: true } } },
+      });
+      if (!lesson) throw new NotFoundException('Không tìm thấy bài học.');
+      return lesson;
+    }
     const goal = await this.prisma.learningGoal.findUnique({
       where: { userId },
       include: { currentPhase: { select: { position: true } } },

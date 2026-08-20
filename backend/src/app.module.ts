@@ -12,6 +12,8 @@ import { HealthModule } from './modules/health/health.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { UsersModule } from './modules/users/users.module';
+import { VocabularyModule } from './modules/vocabulary/vocabulary.module';
+import { LearningProgressModule } from './modules/learning-progress/learning-progress.module';
 
 @Module({
   imports: [
@@ -32,6 +34,8 @@ import { UsersModule } from './modules/users/users.module';
     ReportsModule,
     HealthModule,
     AiCoachModule,
+    VocabularyModule,
+    LearningProgressModule,
   ],
 })
 export class AppModule {}

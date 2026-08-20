@@ -10,4 +10,3 @@ export function ProtectedRoute({ adminOnly = false }: { adminOnly?: boolean }) {
   if (adminOnly && user.role !== 'ADMIN') return <Navigate to="/today" replace />;
   return <Outlet />;
 }
-

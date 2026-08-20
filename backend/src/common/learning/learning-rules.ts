@@ -1,4 +1,5 @@
 export const MASTERY_THRESHOLD = 0.8;
+export const MIN_TRACKED_STUDY_RATIO = 0.5;
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 

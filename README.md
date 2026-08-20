@@ -1,6 +1,6 @@
 # TOEIC Quest 800
 
-Nền tảng web quản lý lộ trình học TOEIC theo deadline hằng ngày, giúp người học duy trì thói quen và tiến tới mục tiêu 800 điểm. Hệ thống không tổ chức thi TOEIC trực tiếp; người học làm bài trên các website bên ngoài, sau đó nhập kết quả để hệ thống theo dõi và điều chỉnh kế hoạch.
+Nền tảng web quản lý lộ trình học TOEIC theo deadline hằng ngày, giúp người học duy trì thói quen và tiến tới mục tiêu 800 điểm. Kiến thức, từ vựng và bài luyện ngắn được học ngay trong TOEIC Quest; chỉ các checkpoint và đề thi thử mới chuyển sang website bên ngoài để làm rồi nhập kết quả về hệ thống.
 
 ## 1. Bài toán
 
@@ -33,8 +33,9 @@ TOEIC Quest 800 giải quyết vấn đề bằng cách chia mục tiêu lớn t
 - Lập lịch học 6 ngày/tuần.
 - Giao nhiệm vụ hằng ngày.
 - Quản lý deadline và nhiệm vụ học bù.
-- Bài học dạng bài viết, video, audio, transcript, flashcard và tài liệu đính kèm.
-- Focus Timer và nhật ký học tập.
+- 144 bài học theo ngày, mỗi bài có mục tiêu, lý thuyết tóm tắt, từ vựng, hoạt động và mini practice riêng.
+- Mini Listening phát tệp WAV do dự án tự tạo; mini Reading dùng văn bản do dự án tự biên soạn.
+- Focus Timer, tổng thời gian thực học và nhật ký học tập.
 - XP, level, streak, huy hiệu và phần thưởng Phase.
 - Liên kết đến bài luyện tập hoặc bài thi bên ngoài.
 - Nhập điểm, thời gian, kỹ năng yếu và ảnh kết quả bên ngoài.
@@ -98,7 +99,7 @@ AI chỉ đưa ra đề xuất. Backend kiểm tra toàn bộ kết quả trư�
 
 ## 6. Lộ trình tham khảo
 
-Lộ trình mặc định kéo dài 24 tuần, phù hợp với người có điểm đầu vào khoảng 450-550 và học 60-90 phút mỗi ngày, 6 ngày mỗi tuần.
+Khung nội dung đầy đủ kéo dài 24 tuần. Sau onboarding, hệ thống có thể đề xuất khoảng 6-40 tuần và bỏ qua các Phase nền đã phù hợp với điểm đầu vào.
 
 | Phase | Thời gian | Tên chặng | Mục tiêu |
 | --- | ---: | --- | --- |
@@ -183,7 +184,7 @@ Hệ thống không giao kiến thức mới, chỉ hiển thị báo cáo tuầ
 
 ### Tuần 2
 
-- Tăng từ vựng lên 10-15 từ mỗi ngày.
+- Tăng từ vựng lên 20 từ mỗi ngày theo cơ chế học mới và ôn xoay vòng.
 - Duy trì 15 phút nghe.
 - Duy trì 15 phút ngữ pháp hoặc đọc.
 - Hoàn thành ít nhất một Focus Timer 25 phút mỗi ngày.
@@ -213,18 +214,73 @@ Hệ thống không giao kiến thức mới, chỉ hiển thị báo cáo tuầ
 
 Nếu người học không chọn trước giờ quy định, hệ thống sử dụng kế hoạch Tiêu chuẩn.
 
-## 9. Vòng lặp sử dụng hằng ngày
+### Dữ liệu của một ngày học
+
+Mỗi bản ghi `Lesson` có cả nội dung hiển thị và dữ liệu JSON có cấu trúc trong `contentData`:
 
 ```text
-Mở nhiệm vụ hôm nay
+Mục tiêu duy nhất trong ngày
+├── 3 ý lý thuyết trọng tâm
+├── 20 flashcard + nghĩa + ví dụ + file phát âm riêng
+├── 4 hoạt động có số phút cụ thể
+├── Mini Listening hoặc Reading tự luyện ngay trên web
+├── Câu hỏi tự kiểm tra và đáp án dạng mở
+└── 3 điều kiện chiến thắng
+```
+
+Dữ liệu seed tạo đủ 144 ngày thuộc 6 Phase. Mỗi ngày Listening có transcript và URL audio riêng; từ vựng được phân phối theo lịch học/ôn. Nội dung do dự án tự biên soạn theo cấu trúc TOEIC và các nguyên tắc học công khai; không sao chép đề, audio hoặc nội dung trả phí của Study4.
+
+### Flashcard và lặp lại ngắt quãng
+
+- Mỗi ngày có 20 thẻ; mặt trước là từ tiếng Anh, mặt sau là nghĩa và ví dụ.
+- Mỗi từ có nút nghe và một file WAV riêng trong `frontend/public/audio/vocabulary`.
+- Có thể lật qua mặt nghĩa rồi lật ngược lại mặt từ nhiều lần.
+- Sau khi xem hai mặt, học viên chọn `Học lại`, `Khó`, `Tốt` hoặc `Dễ`, sau đó chủ động bấm `Next`.
+- Có nút `Thẻ trước` để quay lại kiểm tra thẻ vừa học; việc quay lại không tự cộng thêm một lượt ôn.
+- Backend lưu từng lần đánh giá vào bảng `VocabularyReview`.
+- Thuật toán tính `intervalDays`, `easeFactor`, `repetitions` và `nextReviewAt`; đánh giá `Học lại` đưa thẻ về lịch ôn ngày mai, còn `Dễ` tạo khoảng ôn dài hơn.
+- API `GET /api/v1/vocabulary/reviews/due` trả về các từ đã đến hạn ôn.
+
+### Quy tắc ghi nhận thời gian
+
+- Học viên phải bấm `Bắt đầu` để mở một phiên học.
+- Giao diện hiển thị đồng hồ đếm ngược thời gian tối thiểu còn lại theo từng giây.
+- Khi bấm `Tạm dừng`, backend lưu số giây đã học vào `StudySession`.
+- Có thể rời rồi `Tiếp tục học`; các phiên trước vẫn được cộng dồn.
+- Khi đồng hồ về `00:00`, frontend tự dừng và lưu phiên học.
+- Các phiên trong cùng bài được cộng dồn, vì vậy có thể nghỉ rồi học tiếp.
+- Nút `Hoàn thành` chỉ mở khi tổng thời gian đã ghi nhận đạt ít nhất 50% thời lượng bài được giao, đã tích đủ checklist và đã nộp mini practice.
+- Bài bên ngoài không dùng nút hoàn thành thường; học viên phải nộp kết quả trước.
+- Báo cáo tuần tổng hợp thời gian từ các phiên học đã kết thúc, không dựa vào thao tác mở link.
+
+### Checklist và mini practice
+
+- Khối **03 · Kế hoạch học** là checklist tương tác; trạng thái từng bước được lưu trong PostgreSQL qua `LessonActivityProgress`.
+- Khối **04 · Mini practice** có câu hỏi trắc nghiệm cụ thể, bốn lựa chọn, đáp án và giải thích.
+- Frontend chỉ gửi vị trí đáp án đã chọn; backend đọc đáp án chuẩn từ `Lesson.contentData`, chấm điểm rồi lưu `MiniPracticeAttempt`.
+- Mỗi lượt lưu số câu đúng, tổng câu, độ chính xác, lựa chọn và giải thích theo từng câu.
+- 119 bài mini Reading hiện có 119 đoạn riêng; không còn dùng bốn đoạn văn luân phiên.
+- Trang **Tiến độ & thống kê** tổng hợp độ chính xác mini practice theo kỹ năng và hiển thị các lượt luyện gần nhất.
+- AI Coach kết hợp kết quả bên ngoài với tối đa 20 lượt mini practice gần nhất; kỹ năng dưới 80% được thêm vào danh sách điểm yếu để ưu tiên bài ngày mai.
+
+## 9. Vòng lặp sử dụng hằng ngày
+
+Trang **Học hôm nay** là màn hình học chính, không phải một danh sách nhiệm vụ trung gian. Bài được giao mở trực tiếp trên trang này với mục tiêu, lý thuyết, flashcard có phát âm, audio Listening, mini practice, deadline, Focus Timer và nút hoàn thành. Học viên không phải mở bài rồi quay lại một trang khác để bấm timer.
+
+Trang **Lộ trình học** chỉ đóng vai trò bản đồ khóa học. Khi chọn một bài đã mở, hệ thống chuyển sang màn hình **Học hôm nay** để đọc và luyện; trong màn hình học luôn có liên kết quay lại lộ trình. Học viên chỉ xem được các Phase đã mở, còn quản trị viên được xem toàn bộ bài học ở tất cả Phase để kiểm tra nội dung.
+
+```text
+Mở Học hôm nay và nhận đúng bài được giao
         ↓
-Chọn Phục hồi, Tiêu chuẩn hoặc Tăng tốc
+Bật Focus Timer ngay trong bài học
         ↓
-Bật Focus Timer và học nội dung được giao
+Học lý thuyết, từ vựng và tích từng bước trong checklist
         ↓
-Đánh dấu checklist và viết điều đã học
+Trả lời, nộp mini practice và xem giải thích
         ↓
-Nhập kết quả bài làm bên ngoài nếu có
+Dừng timer, đủ thời gian tối thiểu rồi hoàn thành
+        ↓
+Nhập kết quả bài checkpoint bên ngoài nếu có
         ↓
 Nhận XP, streak và thông báo chiến thắng
         ↓
@@ -233,7 +289,7 @@ AI phân tích và đề xuất kế hoạch ngày mai
 
 ## 10. Nhiệm vụ sử dụng website bên ngoài
 
-Web không lưu trữ đề thi TOEIC. Quản trị viên chỉ tạo nguồn học hợp lệ và gắn nguồn đó vào nhiệm vụ.
+Web có bài học và mini practice tự biên soạn nhưng không lưu trữ ngân hàng đề thi TOEIC của bên thứ ba. Quản trị viên chỉ gắn nguồn ngoài vào checkpoint hoặc buổi thi thử.
 
 Ví dụ:
 
@@ -438,19 +494,20 @@ Quản trị viên có thể cho phép mở khóa thủ công trong trường h�
 ### Học viên
 
 1. Đăng ký và đăng nhập.
-2. Thiết lập mục tiêu.
-3. Trang chủ Hôm nay.
-4. Chọn mức nhiệm vụ.
-5. Xem bài học.
-6. Focus Timer.
-7. Bản đồ Phase.
-8. Lịch và deadline.
-9. Nhập kết quả bên ngoài.
-10. Nhật ký học tập.
-11. XP, streak và huy hiệu.
-12. Báo cáo tuần.
-13. AI Daily Coach.
-14. Cài đặt thông báo.
+2. Bắt buộc khai báo điểm hiện tại, điểm mục tiêu, phút học và ngày học mỗi tuần.
+3. Backend tính Phase bắt đầu, số tuần dự kiến và ngày thi gợi ý.
+4. Vào **Học hôm nay** để học trực tiếp bài được giao.
+5. Xem lý thuyết, flashcard, phát âm từ vựng và nghe file audio ngay trong bài.
+6. Bật, tạm dừng và tiếp tục Focus Timer ngay tại màn hình học.
+7. Dùng **Lộ trình học** làm bản đồ Phase và chọn bài muốn xem.
+8. Quay lại lộ trình từ màn hình bài học.
+9. Lịch và deadline.
+10. Nhập kết quả bên ngoài.
+11. Nhật ký học tập.
+12. XP, streak và huy hiệu.
+13. Xem XP và streak nhanh ở thanh bên; xem chi tiết tại **Tiến độ & thống kê**.
+14. AI Daily Coach.
+15. Cài đặt thông báo.
 
 ### Quản trị viên
 
@@ -458,7 +515,7 @@ Quản trị viên có thể cho phép mở khóa thủ công trong trường h�
 2. Quản lý người dùng.
 3. Quản lý khóa học.
 4. Quản lý Phase.
-5. Quản lý bài học và tài nguyên.
+5. Xem toàn bộ bài của tất cả Phase; quản lý bài học và tài nguyên.
 6. Quản lý mẫu nhiệm vụ.
 7. Quản lý nguồn bên ngoài.
 8. Quản lý XP và huy hiệu.
@@ -488,6 +545,8 @@ Quản trị viên có thể cho phép mở khóa thủ công trong trường h�
 - `lesson_resources`
 - `vocabularies`
 - `vocabulary_reviews`
+- `lesson_activity_progress`
+- `mini_practice_attempts`
 
 ### Nhiệm vụ
 
@@ -544,6 +603,10 @@ POST   /api/assignments/:id/reschedule
 POST   /api/study-sessions/start
 POST   /api/study-sessions/:id/finish
 POST   /api/learning-journals
+
+GET    /api/v1/learning/lessons/:lessonId/progress
+PATCH  /api/v1/learning/lessons/:lessonId/activities/:activityIndex
+POST   /api/v1/learning/lessons/:lessonId/practice-attempts
 
 GET    /api/phases
 GET    /api/phases/:id
@@ -912,23 +975,38 @@ npm test
 
 ## 25. Dữ liệu lộ trình và bản quyền
 
-Seed tạo **144 ngày học = 24 tuần × 6 ngày**, chia thành sáu Phase. Checklist do dự án tự biên soạn dựa trên các nguyên tắc học được công khai:
+Seed tạo **144 ngày học = 24 tuần × 6 ngày**, chia thành sáu Phase. Học viên mới không nhận bài ngay: endpoint onboarding dùng điểm hiện tại, mục tiêu, số phút/ngày và số ngày/tuần để tính `startingPhasePosition`, `estimatedWeeks` và ngày thi gợi ý.
+
+Nội dung bám theo cấu trúc được Study4 công khai:
 
 - Luyện lần lượt từng Part và chỉ chuyển trọng tâm khi độ chính xác đạt khoảng 70–80%.
+- Listening theo thứ tự Part 1 → Part 2 → Part 4 → Part 3.
+- Reading theo thứ tự Part 5 → Part 6 → Part 7.
 - Reading làm riêng từng Part, bấm giờ, tự chữa trước khi xem giải thích.
 - Listening nghe một lần, tự sửa, dictation rồi mới đọc transcript.
-- Duy trì 20–30 từ vựng mỗi ngày và học ngữ pháp theo từng chủ điểm.
+- Duy trì 20 từ vựng mỗi ngày theo cơ chế ôn xoay vòng.
+- Phase nền tảng đi qua danh mục ngữ pháp công khai: kiến thức từ loại/cụm từ, mệnh đề/câu, danh từ, đại từ, tính từ, thì, thể, các dạng động từ, phân từ, trạng từ, giới từ, liên từ, mệnh đề quan hệ, điều kiện và so sánh.
 
-Nguồn tham khảo: [Lịch học STUDY4](https://study4.com/studyplan/) và [hướng dẫn Complete TOEIC](https://study4.com/posts/1251/huong-dan-cach-hoc-khoa-complete-toeic-cua-study4-hieu-qua/).
+Nguồn tham khảo: [Lịch học STUDY4](https://study4.com/studyplan/), [chương trình Complete TOEIC](https://study4.com/courses/28/complete-toeic/) và [hướng dẫn cách học Complete TOEIC](https://study4.com/posts/1251/huong-dan-cach-hoc-khoa-complete-toeic-cua-study4-hieu-qua/).
 
-Dự án không sao chép video, flashcard, lời giải hoặc ngân hàng câu hỏi của STUDY4. Người học mở website bên ngoài để làm bài và quay lại nhập kết quả. TOEIC Quest không liên kết thương mại hay đại diện cho STUDY4.
+Dự án không sao chép video, flashcard, lời giải, audio hoặc ngân hàng câu hỏi của STUDY4. Mini practice, transcript và audio trong `frontend/public/audio` do dự án tự tạo. Người học chỉ mở website bên ngoài ở checkpoint/thi thử rồi quay lại nhập kết quả. TOEIC Quest không liên kết thương mại hay đại diện cho STUDY4.
+
+Tạo lại toàn bộ 25 file Listening và 48 file phát âm từ vựng sau khi sửa dữ liệu:
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File scripts/generate-listening-audio.ps1
+```
 
 ## 26. Trạng thái MVP hiện tại
 
 Đã hoàn thành:
 
 - Đăng ký, đăng nhập, access/refresh token và phân quyền học viên/admin.
+- Onboarding bắt buộc; tính Phase bắt đầu và số tuần dự kiến từ điểm đầu vào/mục tiêu.
 - Khóa học 24 tuần, 6 Phase, 144 ngày học và checklist cụ thể.
+- 25 bài Listening có 25 transcript và 25 file WAV riêng; không còn dùng 4 file luân phiên.
+- 48 từ vựng có 48 file WAV phát âm riêng và giao diện flashcard lật thẻ.
+- Đánh giá flashcard được lưu trong PostgreSQL và tính lịch ôn theo spaced repetition.
 - Màn hình course player với mục lục Phase/ngày học, khóa chặng và tiến độ.
 - Giao deadline hôm nay với ba nhịp Phục hồi, Tiêu chuẩn và Tăng tốc; bản Phục hồi tự rút gọn thời lượng và XP.
 - Lịch học tùy chỉnh theo ngày trong tuần; ngày nghỉ không giao bài và không làm mất streak.
@@ -942,7 +1020,7 @@ Dự án không sao chép video, flashcard, lời giải hoặc ngân hàng câu
 - AI Daily Coach gọi API bên thứ ba khi có key, fallback sang rule engine khi không có và áp dụng lựa chọn cho **ngày học kế tiếp**.
 - Báo cáo tuần, mastery theo Part và danh sách học viên có nguy cơ bỏ học.
 - Trang admin chọn đúng Course/Phase, thêm, publish/ẩn, xóa có kiểm tra dữ liệu đang sử dụng.
-- Swagger API, smoke test xuyên suốt PostgreSQL và unit test cho AI/lịch học/mastery.
+- Swagger API, smoke test xuyên suốt PostgreSQL và unit test cho AI/lịch học/mastery/spaced repetition.
 - PostgreSQL + Prisma migration/seed; Docker chỉ là phương án chạy database tùy chọn.
 
 ## 27. Giới hạn chủ động của sản phẩm

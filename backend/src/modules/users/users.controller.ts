@@ -6,6 +6,7 @@ import { CurrentUser } from '../../common/auth/current-user.decorator';
 import { JwtAuthGuard } from '../../common/auth/jwt-auth.guard';
 import { Roles } from '../../common/auth/roles.decorator';
 import { RolesGuard } from '../../common/auth/roles.guard';
+import { CompleteOnboardingDto } from './dto/complete-onboarding.dto';
 import { UpdateLearningGoalDto } from './dto/update-learning-goal.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 import { UsersService } from './users.service';
@@ -25,6 +26,11 @@ export class UsersController {
   @Put('me/learning-goal')
   updateGoal(@CurrentUser() user: AuthUser, @Body() input: UpdateLearningGoalDto) {
     return this.usersService.updateLearningGoal(user.id, input);
+  }
+
+  @Put('me/onboarding')
+  completeOnboarding(@CurrentUser() user: AuthUser, @Body() input: CompleteOnboardingDto) {
+    return this.usersService.completeOnboarding(user.id, input);
   }
 }
 
@@ -46,4 +52,3 @@ export class AdminUsersController {
     return this.usersService.updateStatus(id, input.isActive);
   }
 }
-

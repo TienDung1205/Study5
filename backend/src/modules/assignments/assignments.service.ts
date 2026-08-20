@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { AssignmentStatus, NotificationType, PlanType, Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
-import { isStudyDay, MASTERY_THRESHOLD } from '../../common/learning/learning-rules';
+import { isStudyDay, MASTERY_THRESHOLD, MIN_TRACKED_STUDY_RATIO } from '../../common/learning/learning-rules';
 import { GamificationService } from '../gamification/gamification.service';
 
 const PLAN_MULTIPLIER: Record<PlanType, number> = {
@@ -124,16 +124,39 @@ export class AssignmentsService {
 
   async completeItem(userId: string, itemId: string) {
     const item = await this.findOwnedItem(userId, itemId);
+    if (item.completedAt) return this.finalizeAssignmentIfReady(userId, item.assignmentId);
     if (item.externalResourceId && !item.externalSubmission) {
       throw new BadRequestException('Hãy nộp kết quả bài làm bên ngoài trước khi hoàn thành nhiệm vụ.');
     }
-    if (!item.completedAt) {
-      await this.prisma.assignmentItem.update({
-        where: { id: itemId },
-        data: { completedAt: new Date(), startedAt: item.startedAt ?? new Date() },
-      });
-      await this.gamification.awardXp(userId, item.xpReward, 'ASSIGNMENT_ITEM', itemId);
+    if (item.lessonId) {
+      const trackedSeconds = item.studySessions.reduce((total, session) => total + session.durationSeconds, 0);
+      const requiredSeconds = Math.ceil(item.durationMinutes * 60 * MIN_TRACKED_STUDY_RATIO);
+      if (trackedSeconds < requiredSeconds) {
+        const remainingMinutes = Math.ceil((requiredSeconds - trackedSeconds) / 60);
+        throw new BadRequestException(`Cần ghi nhận thêm ít nhất ${remainingMinutes} phút học trước khi hoàn thành.`);
+      }
+      const lesson = await this.prisma.lesson.findUnique({ where: { id: item.lessonId }, select: { contentData: true } });
+      const contentData = lesson?.contentData as { activities?: unknown[]; practice?: { questions?: unknown[] } } | null;
+      const requiredActivities = contentData?.activities?.length ?? 0;
+      const requiredQuestions = contentData?.practice?.questions?.length ?? 0;
+      const [completedActivities, practiceAttempt] = await Promise.all([
+        this.prisma.lessonActivityProgress.count({ where: { userId, lessonId: item.lessonId } }),
+        requiredQuestions
+          ? this.prisma.miniPracticeAttempt.findFirst({ where: { userId, lessonId: item.lessonId }, select: { id: true } })
+          : Promise.resolve(null),
+      ]);
+      if (completedActivities < requiredActivities) {
+        throw new BadRequestException(`Hãy hoàn thành đủ ${requiredActivities} bước trong kế hoạch học.`);
+      }
+      if (requiredQuestions && !practiceAttempt) {
+        throw new BadRequestException('Hãy nộp mini practice trước khi hoàn thành bài học.');
+      }
     }
+    await this.prisma.assignmentItem.update({
+      where: { id: itemId },
+      data: { completedAt: new Date(), startedAt: item.startedAt ?? new Date() },
+    });
+    await this.gamification.awardXp(userId, item.xpReward, 'ASSIGNMENT_ITEM', itemId);
     return this.finalizeAssignmentIfReady(userId, item.assignmentId);
   }
 
@@ -419,7 +442,7 @@ export class AssignmentsService {
   private async findOwnedItem(userId: string, itemId: string) {
     const item = await this.prisma.assignmentItem.findFirst({
       where: { id: itemId, assignment: { userId } },
-      include: { externalSubmission: true },
+      include: { externalSubmission: true, studySessions: { where: { endedAt: { not: null } } } },
     });
     if (!item) throw new NotFoundException('Không tìm thấy nội dung nhiệm vụ.');
     return item;
@@ -439,7 +462,12 @@ export class AssignmentsService {
     phase: { select: { id: true, title: true, position: true } },
     items: {
       orderBy: { position: 'asc' as const },
-      include: { lesson: true, externalResource: true, externalSubmission: true },
+      include: {
+        lesson: true,
+        externalResource: true,
+        externalSubmission: true,
+        studySessions: { where: { endedAt: { not: null } }, select: { id: true, durationSeconds: true } },
+      },
     },
   };
 }

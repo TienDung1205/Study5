@@ -8,7 +8,7 @@ export function RegisterPage() {
   const [password, setPassword] = useState(''); const [error, setError] = useState('');
   async function submit(event: FormEvent) {
     event.preventDefault(); setError('');
-    try { await register(displayName, email, password); navigate('/today'); }
+    try { await register(displayName, email, password); navigate('/onboarding'); }
     catch (caught) { setError(caught instanceof Error ? caught.message : 'Không thể đăng ký.'); }
   }
   return <main className="auth-page"><form className="auth-card" onSubmit={submit}>
@@ -20,4 +20,3 @@ export function RegisterPage() {
     <p>Đã có tài khoản? <Link to="/login">Đăng nhập</Link></p>
   </form></main>;
 }
-

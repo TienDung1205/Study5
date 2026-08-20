@@ -20,10 +20,7 @@ export class AuthService {
     const existingUser = await this.prisma.user.findUnique({ where: { email } });
     if (existingUser) throw new ConflictException('Email đã được sử dụng.');
 
-    const course = await this.prisma.course.findFirst({
-      where: { isPublished: true },
-      include: { phases: { orderBy: { position: 'asc' }, take: 1 } },
-    });
+    const course = await this.prisma.course.findFirst({ where: { isPublished: true } });
     const passwordHash = await hash(input.password, 12);
     const user = await this.prisma.user.create({
       data: {
@@ -34,7 +31,6 @@ export class AuthService {
         learningGoal: {
           create: {
             courseId: course?.id,
-            currentPhaseId: course?.phases[0]?.id,
           },
         },
       },
@@ -98,4 +94,3 @@ export class AuthService {
     return { accessToken, refreshToken, user };
   }
 }
-

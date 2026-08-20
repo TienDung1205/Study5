@@ -7,6 +7,8 @@ import { LoginPage } from '../features/auth/pages/LoginPage';
 import { RegisterPage } from '../features/auth/pages/RegisterPage';
 import { ExternalPage } from '../features/external-submissions/pages/ExternalPage';
 import { NotificationsPage } from '../features/notifications/pages/NotificationsPage';
+import { OnboardingRequiredRoute } from '../features/onboarding/components/OnboardingRequiredRoute';
+import { OnboardingPage } from '../features/onboarding/pages/OnboardingPage';
 import { ReportsPage } from '../features/reports/pages/ReportsPage';
 import { RoadmapPage } from '../features/roadmap/pages/RoadmapPage';
 import { SettingsPage } from '../features/settings/pages/SettingsPage';
@@ -17,17 +19,20 @@ export function AppRouter() {
     <Route path="/login" element={<LoginPage />} />
     <Route path="/register" element={<RegisterPage />} />
     <Route element={<ProtectedRoute />}>
-      <Route element={<AppLayout />}>
-        <Route index element={<Navigate to="/today" replace />} />
-        <Route path="/today" element={<TodayPage />} />
-        <Route path="/roadmap" element={<RoadmapPage />} />
-        <Route path="/ai-coach" element={<AiCoachPage />} />
-        <Route path="/external" element={<ExternalPage />} />
-        <Route path="/reports" element={<ReportsPage />} />
-        <Route path="/notifications" element={<NotificationsPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route element={<ProtectedRoute adminOnly />}>
-          <Route path="/admin" element={<AdminPage />} />
+      <Route path="/onboarding" element={<OnboardingPage />} />
+      <Route element={<OnboardingRequiredRoute />}>
+        <Route element={<AppLayout />}>
+          <Route index element={<Navigate to="/today" replace />} />
+          <Route path="/today" element={<TodayPage />} />
+          <Route path="/roadmap" element={<RoadmapPage />} />
+          <Route path="/ai-coach" element={<AiCoachPage />} />
+          <Route path="/external" element={<ExternalPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route element={<ProtectedRoute adminOnly />}>
+            <Route path="/admin" element={<AdminPage />} />
+          </Route>
         </Route>
       </Route>
     </Route>

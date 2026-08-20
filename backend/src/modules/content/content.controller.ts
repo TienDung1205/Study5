@@ -25,12 +25,12 @@ export class ContentController {
 
   @Get('roadmap')
   roadmap(@CurrentUser() user: AuthUser) {
-    return this.contentService.getRoadmap(user.id);
+    return this.contentService.getRoadmap(user.id, user.role);
   }
 
   @Get('lessons/:id')
   lesson(@CurrentUser() user: AuthUser, @Param('id') id: string) {
-    return this.contentService.getLesson(user.id, id);
+    return this.contentService.getLesson(user.id, id, user.role);
   }
 }
 

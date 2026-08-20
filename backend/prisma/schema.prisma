@@ -55,45 +55,76 @@ enum NotificationType {
   SYSTEM
 }
 
+enum FlashcardRating {
+  AGAIN
+  HARD
+  GOOD
+  EASY
+}
+
 model User {
-  id                  String               @id @default(cuid())
-  email               String               @unique
-  passwordHash        String
-  refreshTokenHash    String?
-  displayName         String
-  role                UserRole             @default(LEARNER)
-  timezone            String               @default("Asia/Bangkok")
-  isActive            Boolean              @default(true)
-  learningGoal        LearningGoal?
-  progress            LearnerProgress?
-  assignments         DailyAssignment[]
-  studySessions       StudySession[]
-  learningJournals    LearningJournal[]
-  externalSubmissions ExternalSubmission[]
-  aiRecommendations   AiRecommendation[]
-  xpTransactions      XpTransaction[]
-  badges              LearnerBadge[]
-  notifications       Notification[]
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
+  id                   String                   @id @default(cuid())
+  email                String                   @unique
+  passwordHash         String
+  refreshTokenHash     String?
+  displayName          String
+  role                 UserRole                 @default(LEARNER)
+  timezone             String                   @default("Asia/Bangkok")
+  isActive             Boolean                  @default(true)
+  learningGoal         LearningGoal?
+  progress             LearnerProgress?
+  assignments          DailyAssignment[]
+  studySessions        StudySession[]
+  learningJournals     LearningJournal[]
+  externalSubmissions  ExternalSubmission[]
+  aiRecommendations    AiRecommendation[]
+  xpTransactions       XpTransaction[]
+  badges               LearnerBadge[]
+  notifications        Notification[]
+  vocabularyReviews    VocabularyReview[]
+  lessonActivities     LessonActivityProgress[]
+  miniPracticeAttempts MiniPracticeAttempt[]
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+}
+
+model VocabularyReview {
+  id             String          @id @default(cuid())
+  userId         String
+  term           String
+  rating         FlashcardRating
+  repetitions    Int             @default(0)
+  intervalDays   Int             @default(1)
+  easeFactor     Float           @default(2.5)
+  nextReviewAt   DateTime
+  lastReviewedAt DateTime        @default(now())
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@unique([userId, term])
+  @@index([userId, nextReviewAt])
 }
 
 model LearningGoal {
-  id             String   @id @default(cuid())
-  userId         String   @unique
-  courseId       String?
-  currentPhaseId String?
-  targetScore    Int      @default(800)
-  currentScore   Int?
-  examDate       DateTime?
-  dailyMinutes   Int      @default(60)
-  studyDays      Int[]    @default([1, 2, 3, 4, 5, 6])
-  preferredHour  Int      @default(20)
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course         Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
-  currentPhase   Phase?   @relation(fields: [currentPhaseId], references: [id], onDelete: SetNull)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  courseId              String?
+  currentPhaseId        String?
+  targetScore           Int       @default(800)
+  currentScore          Int?
+  examDate              DateTime?
+  dailyMinutes          Int       @default(60)
+  studyDays             Int[]     @default([1, 2, 3, 4, 5, 6])
+  preferredHour         Int       @default(20)
+  estimatedWeeks        Int?
+  startingPhasePosition Int       @default(1)
+  onboardingCompletedAt DateTime?
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course                Course?   @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  currentPhase          Phase?    @relation(fields: [currentPhaseId], references: [id], onDelete: SetNull)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 }
 
 model LearnerProgress {
@@ -142,25 +173,58 @@ model Phase {
 }
 
 model Lesson {
-  id              String           @id @default(cuid())
-  phaseId         String
-  title           String
-  description     String?
-  skill           SkillType
-  resourceType    ResourceType
-  content         String?
-  contentUrl      String?
-  durationMinutes Int
-  xpReward        Int              @default(20)
-  position        Int
-  isPublished     Boolean          @default(false)
-  phase           Phase            @relation(fields: [phaseId], references: [id], onDelete: Cascade)
-  assignmentItems AssignmentItem[]
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id               String                   @id @default(cuid())
+  phaseId          String
+  title            String
+  description      String?
+  skill            SkillType
+  resourceType     ResourceType
+  content          String?
+  contentData      Json?
+  contentUrl       String?
+  durationMinutes  Int
+  xpReward         Int                      @default(20)
+  position         Int
+  isPublished      Boolean                  @default(false)
+  phase            Phase                    @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  assignmentItems  AssignmentItem[]
+  activityProgress LessonActivityProgress[]
+  practiceAttempts MiniPracticeAttempt[]
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
 
   @@unique([phaseId, position])
   @@index([phaseId, skill])
+}
+
+model LessonActivityProgress {
+  id            String   @id @default(cuid())
+  userId        String
+  lessonId      String
+  activityIndex Int
+  completedAt   DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson        Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId, activityIndex])
+  @@index([userId, completedAt])
+}
+
+model MiniPracticeAttempt {
+  id              String   @id @default(cuid())
+  userId          String
+  lessonId        String
+  selectedAnswers Int[]
+  correctAnswers  Int
+  totalQuestions  Int
+  accuracy        Float
+  resultDetails   Json
+  submittedAt     DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson          Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@index([userId, lessonId, submittedAt])
+  @@index([userId, submittedAt])
 }
 
 model DailyAssignment {
@@ -302,16 +366,16 @@ model LearnerBadge {
 }
 
 model AiRecommendation {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   userId           String
   analysis         Json
   planOptions      Json
   provider         String
   model            String?
-  usedFallback     Boolean  @default(false)
+  usedFallback     Boolean   @default(false)
   selectedPlanType PlanType?
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt        DateTime @default(now())
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt        DateTime  @default(now())
 
   @@index([userId, createdAt])
 }

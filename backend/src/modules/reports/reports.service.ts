@@ -11,7 +11,7 @@ export class ReportsService {
     const from = new Date();
     from.setUTCDate(from.getUTCDate() - 6);
     from.setUTCHours(0, 0, 0, 0);
-    const [assignments, studyAggregate, submissions, progress] = await Promise.all([
+    const [assignments, studyAggregate, submissions, progress, practiceAttempts] = await Promise.all([
       this.prisma.dailyAssignment.findMany({
         where: { userId, scheduledDate: { gte: from } },
         include: { items: true },
@@ -26,6 +26,11 @@ export class ReportsService {
         orderBy: { submittedAt: 'desc' },
       }),
       this.prisma.learnerProgress.findUnique({ where: { userId } }),
+      this.prisma.miniPracticeAttempt.findMany({
+        where: { userId, submittedAt: { gte: from } },
+        include: { lesson: { select: { title: true, skill: true } } },
+        orderBy: { submittedAt: 'desc' },
+      }),
     ]);
     const totalItems = assignments.reduce((sum, assignment) => sum + assignment.items.length, 0);
     const completedItems = assignments.reduce(
@@ -38,6 +43,16 @@ export class ReportsService {
         latestByPart.set(submission.toeicPart, submission);
       }
     }
+    const practiceCorrectAnswers = practiceAttempts.reduce((sum, attempt) => sum + attempt.correctAnswers, 0);
+    const practiceTotalQuestions = practiceAttempts.reduce((sum, attempt) => sum + attempt.totalQuestions, 0);
+    const practiceBySkillMap = new Map<string, { correctAnswers: number; totalQuestions: number; attempts: number }>();
+    for (const attempt of practiceAttempts) {
+      const current = practiceBySkillMap.get(attempt.lesson.skill) ?? { correctAnswers: 0, totalQuestions: 0, attempts: 0 };
+      current.correctAnswers += attempt.correctAnswers;
+      current.totalQuestions += attempt.totalQuestions;
+      current.attempts += 1;
+      practiceBySkillMap.set(attempt.lesson.skill, current);
+    }
     return {
       from,
       completedDays: assignments.filter((assignment) => assignment.status === AssignmentStatus.COMPLETED).length,
@@ -47,6 +62,24 @@ export class ReportsService {
       completionRate: totalItems ? completedItems / totalItems : 0,
       studyMinutes: Math.round((studyAggregate._sum.durationSeconds ?? 0) / 60),
       latestScore: submissions[0]?.totalScore ?? null,
+      practiceAttempts: practiceAttempts.length,
+      practiceCorrectAnswers,
+      practiceTotalQuestions,
+      practiceAccuracy: practiceTotalQuestions ? practiceCorrectAnswers / practiceTotalQuestions : null,
+      practiceBySkill: Array.from(practiceBySkillMap.entries()).map(([skill, values]) => ({
+        skill,
+        ...values,
+        accuracy: values.totalQuestions ? values.correctAnswers / values.totalQuestions : null,
+      })),
+      recentPracticeAttempts: practiceAttempts.slice(0, 5).map((attempt) => ({
+        id: attempt.id,
+        lessonTitle: attempt.lesson.title,
+        skill: attempt.lesson.skill,
+        correctAnswers: attempt.correctAnswers,
+        totalQuestions: attempt.totalQuestions,
+        accuracy: attempt.accuracy,
+        submittedAt: attempt.submittedAt,
+      })),
       partMastery: Array.from(latestByPart.values()).map((submission) => ({
         part: submission.toeicPart,
         accuracy: submission.accuracy,
