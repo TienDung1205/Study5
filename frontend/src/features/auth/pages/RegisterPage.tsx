@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { APP_NAME } from '../../../config/app';
 import { useAuthStore } from '../auth.store';
 import { PasswordInput } from '../components/PasswordInput';
 
@@ -13,7 +14,7 @@ export function RegisterPage() {
     catch (caught) { setError(caught instanceof Error ? caught.message : 'Không thể đăng ký.'); }
   }
   return <main className="auth-page"><form className="auth-card" onSubmit={submit}>
-    <p className="eyebrow">BẮT ĐẦU ROAD TO 800</p><h1>Tạo tài khoản</h1>
+    <p className="eyebrow">BẮT ĐẦU VỚI {APP_NAME.toUpperCase()}</p><h1>Tạo tài khoản</h1>
     <label>Họ tên<input value={displayName} onChange={(event) => setDisplayName(event.target.value)} minLength={2} required /></label>
     <label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label>
     <label>Mật khẩu<PasswordInput value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" minLength={8} required /></label>

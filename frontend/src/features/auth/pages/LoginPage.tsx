@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { APP_NAME } from '../../../config/app';
 import { useAuthStore } from '../auth.store';
 import { PasswordInput } from '../components/PasswordInput';
 
@@ -17,7 +18,7 @@ export function LoginPage() {
     finally { setSubmitting(false); }
   }
   return <main className="auth-page"><form className="auth-card" onSubmit={submit}>
-    <p className="eyebrow">TOEIC QUEST 800</p><h1>Tiếp tục hành trình</h1>
+    <p className="eyebrow">{APP_NAME.toUpperCase()}</p><h1>Tiếp tục hành trình</h1>
     <p className="muted">Đăng nhập để tiếp tục bài học trong lộ trình.</p>
     <label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label>
     <label>Mật khẩu<PasswordInput value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required /></label>

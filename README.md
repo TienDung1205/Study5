@@ -1,6 +1,6 @@
-# TOEIC Quest 800
+# Study7
 
-Nền tảng web quản lý lộ trình học TOEIC theo deadline hằng ngày, giúp người học duy trì thói quen và tiến tới mục tiêu 800 điểm. Kiến thức, từ vựng và bài luyện ngắn được học ngay trong TOEIC Quest; chỉ các checkpoint và đề thi thử mới chuyển sang website bên ngoài để làm rồi nhập kết quả về hệ thống.
+Nền tảng web quản lý lộ trình học TOEIC theo deadline hằng ngày, giúp người học duy trì thói quen và tiến tới mục tiêu 800 điểm. Kiến thức, từ vựng và bài luyện ngắn được học ngay trong Study7; chỉ các checkpoint và đề thi thử mới chuyển sang website bên ngoài để làm rồi nhập kết quả về hệ thống.
 
 ## 1. Bài toán
 
@@ -13,7 +13,7 @@ Nhiều người học TOEIC đã có tài liệu nhưng vẫn không đạt m�
 - Học từ vựng, ngữ pháp, Listening và Reading rời rạc.
 - Không nhìn thấy những chiến thắng nhỏ trong quá trình học.
 
-TOEIC Quest 800 giải quyết vấn đề bằng cách chia mục tiêu lớn thành các Phase ngắn, giao nhiệm vụ 6 ngày mỗi tuần và tạo cảm giác chiến thắng sau từng ngày, từng tuần và từng Phase.
+Study7 giải quyết vấn đề bằng cách chia mục tiêu lớn thành các Phase ngắn, giao nhiệm vụ 6 ngày mỗi tuần và tạo cảm giác chiến thắng sau từng ngày, từng tuần và từng Phase.
 
 ## 2. Mục tiêu sản phẩm
 
@@ -897,7 +897,7 @@ Then: Backend trả về kết quả cũ và không cộng thêm XP
 
 ## 22. Điểm khác biệt
 
-Các nền tảng học TOEIC phổ biến tập trung vào kho bài giảng và ngân hàng đề. TOEIC Quest 800 tập trung vào vấn đề duy trì hành vi học:
+Các nền tảng học TOEIC phổ biến tập trung vào kho bài giảng và ngân hàng đề. Study7 tập trung vào vấn đề duy trì hành vi học:
 
 > Người học không cần tự quyết định mỗi ngày nên học gì. Hệ thống đưa ra một nhiệm vụ vừa sức, một deadline rõ ràng và một chiến thắng có thể nhìn thấy.
 
@@ -984,10 +984,9 @@ Mở `http://localhost:5173`.
 SEED_ADMIN_EMAIL=admin@example.com
 SEED_ADMIN_PASSWORD=your-secure-password
 SEED_ADMIN_DISPLAY_NAME=System Admin
-SEED_ADMIN_ONLY=true
 ```
 
-`SEED_ADMIN_ONLY=true` khiến seed xóa toàn bộ tài khoản khác cùng dữ liệu liên quan và chỉ giữ admin vừa cấu hình. Đặt thành `false` nếu cần giữ người dùng hiện có. Sau đó chạy `npm run prisma:seed` và đăng nhập bằng thông tin đã điền.
+Seed kiểm tra theo `SEED_ADMIN_EMAIL`: nếu email chưa tồn tại thì tạo tài khoản admin mới; nếu email đã tồn tại thì giữ nguyên toàn bộ tên, mật khẩu, quyền và trạng thái của tài khoản đó. Seed không xóa hoặc cập nhật bất kỳ tài khoản hiện có nào. Sau đó chạy `npm run prisma:seed` và đăng nhập bằng thông tin đã điền khi tài khoản vừa được tạo.
 
 ### Docker là tùy chọn
 
@@ -1016,7 +1015,7 @@ Nội dung bám theo cấu trúc được Study4 công khai:
 
 Nguồn tham khảo: [Lịch học STUDY4](https://study4.com/studyplan/), [chương trình Complete TOEIC](https://study4.com/courses/28/complete-toeic/) và [hướng dẫn cách học Complete TOEIC](https://study4.com/posts/1251/huong-dan-cach-hoc-khoa-complete-toeic-cua-study4-hieu-qua/).
 
-Dự án không sao chép video, flashcard, lời giải, audio hoặc ngân hàng câu hỏi của STUDY4. Mini practice, transcript và audio trong `frontend/public/audio` do dự án tự tạo. Người học chỉ mở website bên ngoài ở checkpoint/thi thử rồi quay lại nhập kết quả. TOEIC Quest không liên kết thương mại hay đại diện cho STUDY4.
+Dự án không sao chép video, flashcard, lời giải, audio hoặc ngân hàng câu hỏi của STUDY4. Mini practice, transcript và audio trong `frontend/public/audio` do dự án tự tạo. Người học chỉ mở website bên ngoài ở checkpoint/thi thử rồi quay lại nhập kết quả. Study7 không liên kết thương mại hay đại diện cho STUDY4.
 
 Tạo lại các file Listening và bộ audio từ vựng tĩnh cũ sau khi sửa dữ liệu:
 

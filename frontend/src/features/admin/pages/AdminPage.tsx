@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { APP_NAME } from '../../../config/app';
 import { deleteJson, getJson, patchJson, postJson } from '../../../services/api-client';
 
 interface Dashboard { learners: number; activeLearners: number; courses: number; assignments: number; completedAssignments: number; externalSubmissions: number; completionRate: number }
@@ -45,7 +46,7 @@ export function AdminPage() {
   const confirmDelete = (message: string, action: () => void) => { if (window.confirm(message)) action(); };
   const error = createCourse.error ?? createPhase.error ?? createLesson.error ?? createResource.error ?? removeCourse.error ?? removePhase.error ?? removeLesson.error;
 
-  return <section><header className="page-header"><div><p className="eyebrow">ADMIN CONSOLE</p><h2>Quản trị TOEIC Quest</h2><p className="muted">Quản lý nội dung hoặc mở bất kỳ bài nào để học thử, làm lại và kiểm tra giao diện.</p></div><button type="button" onClick={() => navigate('/roadmap')}>Mở toàn bộ kho bài học</button></header>
+  return <section><header className="page-header"><div><p className="eyebrow">ADMIN CONSOLE</p><h2>Quản trị {APP_NAME}</h2><p className="muted">Quản lý nội dung hoặc mở bất kỳ bài nào để học thử, làm lại và kiểm tra giao diện.</p></div><button type="button" onClick={() => navigate('/roadmap')}>Mở toàn bộ kho bài học</button></header>
     <div className="metric-grid"><Metric value={dashboard.data?.learners ?? 0} label="Học viên" /><Metric value={dashboard.data?.activeLearners ?? 0} label="Đang hoạt động" /><Metric value={dashboard.data?.completedAssignments ?? 0} label="Ngày hoàn thành" /><Metric value={`${Math.round((dashboard.data?.completionRate ?? 0) * 100)}%`} label="Tỷ lệ hoàn thành" /></div>
     {error && <p className="form-error">{error.message}</p>}
 

@@ -21,7 +21,7 @@ async function bootstrap(): Promise<void> {
   );
 
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('TOEIC Quest 800 API')
+    .setTitle('Study7 API')
     .setDescription('API quản lý lộ trình, deadline và AI Daily Coach')
     .setVersion('0.1.0')
     .addBearerAuth()
@@ -34,4 +34,3 @@ async function bootstrap(): Promise<void> {
 }
 
 void bootstrap();
-

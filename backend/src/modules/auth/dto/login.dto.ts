@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsString, MinLength } from 'class-validator';
 
 export class LoginDto {
-  @ApiProperty({ example: 'learner@toeicquest.local' })
+  @ApiProperty({ example: 'learner@study7.local' })
   @IsEmail()
   email: string;
 
@@ -11,4 +11,3 @@ export class LoginDto {
   @MinLength(8)
   password: string;
 }
-

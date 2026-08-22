@@ -325,7 +325,7 @@ function createDailyLessons(
       ? [
           'Làm mini test theo Part đang học trên website luyện thi bên ngoài.',
           'Bấm giờ như thi thật và không xem đáp án trong lần đầu.',
-          'Nhập số câu đúng, thời gian và các dạng câu sai vào TOEIC Quest.',
+          'Nhập số câu đúng, thời gian và các dạng câu sai vào Study7.',
           'Chỉ chuyển trọng tâm khi độ chính xác đạt tối thiểu 70–80%.',
         ]
       : instructions;
@@ -468,25 +468,22 @@ const phaseDefinitions: Array<{
 
 async function main(): Promise<void> {
   const adminEmail = requireSeedEnvironment('SEED_ADMIN_EMAIL').toLowerCase();
-  const adminPassword = requireSeedEnvironment('SEED_ADMIN_PASSWORD');
-  const adminDisplayName = requireSeedEnvironment('SEED_ADMIN_DISPLAY_NAME');
-  const adminOnly = process.env.SEED_ADMIN_ONLY?.trim().toLowerCase() === 'true';
-  if (adminPassword.length < 8) throw new Error('SEED_ADMIN_PASSWORD phải có ít nhất 8 ký tự.');
+  const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
+  let admin = existingAdmin;
+  if (!admin) {
+    const adminPassword = requireSeedEnvironment('SEED_ADMIN_PASSWORD');
+    const adminDisplayName = requireSeedEnvironment('SEED_ADMIN_DISPLAY_NAME');
+    if (adminPassword.length < 8) throw new Error('SEED_ADMIN_PASSWORD phải có ít nhất 8 ký tự.');
 
-  const passwordHash = await hash(adminPassword, 12);
-  const admin = await prisma.user.upsert({
-    where: { email: adminEmail },
-    update: { displayName: adminDisplayName, passwordHash, role: UserRole.ADMIN, isActive: true },
-    create: {
-      email: adminEmail,
-      displayName: adminDisplayName,
-      passwordHash,
-      role: UserRole.ADMIN,
-    },
-  });
-  const removedUsers = adminOnly
-    ? await prisma.user.deleteMany({ where: { id: { not: admin.id } } })
-    : { count: 0 };
+    admin = await prisma.user.create({
+      data: {
+        email: adminEmail,
+        displayName: adminDisplayName,
+        passwordHash: await hash(adminPassword, 12),
+        role: UserRole.ADMIN,
+      },
+    });
+  }
   const course = await prisma.course.upsert({
     where: { slug: 'road-to-toeic-800' },
     update: {
@@ -590,8 +587,10 @@ async function main(): Promise<void> {
     });
   }
 
-  console.info(`Seeded admin ${admin.email} and course ${course.slug}.`);
-  if (adminOnly) console.info(`SEED_ADMIN_ONLY đã xóa ${removedUsers.count} tài khoản khác.`);
+  console.info(existingAdmin
+    ? `Admin email ${admin.email} đã tồn tại; seed giữ nguyên tài khoản.`
+    : `Đã tạo admin ${admin.email}.`);
+  console.info(`Seeded course ${course.slug}.`);
 }
 
 main()

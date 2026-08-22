@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { BookOpenCheck, Check, ChevronRight, Clock3, ExternalLink, LockKeyhole, PlayCircle, Trophy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { APP_NAME } from '../../../config/app';
 import { getJson } from '../../../services/api-client';
 import type { AssignmentItem, DailyAssignment, Lesson, Roadmap } from '../../../types/domain';
 import { useAuthStore } from '../../auth/auth.store';
@@ -89,7 +90,7 @@ export function LessonContent({ lesson, assignment, dailyItem }: { lesson?: Less
       return <p className={/^\d+\.|^-/.test(line) ? 'instruction-line' : ''} key={index}>{line}</p>;
     })}</div>}
     {lesson.contentUrl && <a className="external-practice-button" href={lesson.contentUrl} target="_blank" rel="noreferrer"><ExternalLink size={18} /> Làm bài checkpoint ở nguồn ngoài</a>}
-    <div className="source-note">{data?.sourceNote ?? 'TOEIC Quest quản lý lộ trình, thời gian và kết quả học tập.'}</div>
+    <div className="source-note">{data?.sourceNote ?? `${APP_NAME} quản lý lộ trình, thời gian và kết quả học tập.`}</div>
   </article>;
 }
 
