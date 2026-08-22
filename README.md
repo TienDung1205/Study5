@@ -33,7 +33,7 @@ TOEIC Quest 800 giải quyết vấn đề bằng cách chia mục tiêu lớn t
 - Lập lịch học 6 ngày/tuần.
 - Giao nhiệm vụ hằng ngày.
 - Quản lý deadline và nhiệm vụ học bù.
-- 144 bài học theo ngày, mỗi bài có mục tiêu, lý thuyết tóm tắt, từ vựng, hoạt động và mini practice riêng.
+- 200 bài học theo ngày, mỗi bài có mục tiêu, lý thuyết tóm tắt, 25 từ mới không trùng, hoạt động và mini practice riêng.
 - Mini Listening phát tệp WAV do dự án tự tạo; mini Reading dùng văn bản do dự án tự biên soạn.
 - Focus Timer, tổng thời gian thực học và nhật ký học tập.
 - XP, level, streak, huy hiệu và phần thưởng Phase.
@@ -99,16 +99,34 @@ AI chỉ đưa ra đề xuất. Backend kiểm tra toàn bộ kết quả trư�
 
 ## 6. Lộ trình tham khảo
 
-Khung nội dung đầy đủ kéo dài 24 tuần. Sau onboarding, hệ thống có thể đề xuất khoảng 6-40 tuần và bỏ qua các Phase nền đã phù hợp với điểm đầu vào.
+Khung nội dung đầy đủ có 200 ngày học, tương đương khoảng 34 tuần nếu học 6 ngày/tuần. Sau onboarding, hệ thống chọn Phase bắt đầu theo điểm hiện tại, chọn Phase kết thúc theo một trong bốn mục tiêu và tính lại số tuần từ khối lượng Phase còn lại, khoảng trống từ vựng và số phút/ngày.
+
+| Mục tiêu người học chọn | Phase kết thúc | Track hệ thống |
+| ---: | ---: | --- |
+| 450 | 2 | `FOUNDATION_450` |
+| 600 | 4 | `CORE_600` |
+| 700 | 5 | `ADVANCED_700` |
+| 800 | 6 | `MASTERY_800` |
+
+| Mục tiêu TOEIC | Vốn từ tích lũy trong master bank |
+| ---: | ---: |
+| 450 | 1.500 từ |
+| 600 | 2.500 từ |
+| 700 | 4.000 từ |
+| 800 | 5.000 từ |
+
+Master bank chỉ có một bản ghi cho mỗi term. Các tầng cao hơn mở rộng tầng thấp hơn; bài học mới lấy các đoạn không giao nhau trong bank nên không lặp từ mới. Việc một từ xuất hiện lại chỉ xảy ra khi SRS xác định đã đến hạn ôn. Mỗi thẻ có IPA, nghĩa từ, ví dụ tiếng Anh, bản dịch ví dụ, nút nghe từ và nút nghe cả câu.
+
+Luồng nghiệp vụ: nhập điểm hiện tại → chọn 450/600/700/800 → xác định Phase bắt đầu/kết thúc → tính số tuần → giao bài 6 ngày/tuần → checkpoint cập nhật điểm → đạt mục tiêu thì dừng giao bài và cho kết thúc hoặc nâng mục tiêu.
 
 | Phase | Thời gian | Tên chặng | Mục tiêu |
 | --- | ---: | --- | --- |
 | 1 | 2 tuần | Khởi động chiến thắng | Duy trì 12 ngày học và tạo thói quen |
-| 2 | 4 tuần | Xây nền chắc chắn | Từ vựng và ngữ pháp cốt lõi |
-| 3 | 5 tuần | Giải mã Listening | Xây phương pháp luyện Part 1-4 |
-| 4 | 5 tuần | Chinh phục Reading | Xây phương pháp luyện Part 5-7 |
-| 5 | 4 tuần | Tăng tốc | Luyện quản lý thời gian và khắc phục điểm yếu |
-| 6 | 4 tuần | Về đích 800 | Ổn định kết quả thi thử bên ngoài |
+| 2 | 48 ngày học | Xây nền chắc chắn | Hoàn tất tầng từ vựng 450 và ngữ pháp cốt lõi |
+| 3 | 20 ngày học | Giải mã Listening | Xây phương pháp luyện Part 1-4 |
+| 4 | 20 ngày học | Chinh phục Reading | Hoàn tất tầng từ vựng 600 và luyện Part 5-7 |
+| 5 | 60 ngày học | Tăng tốc | Hoàn tất tầng 700, quản lý thời gian và khắc phục điểm yếu |
+| 6 | 40 ngày học | Về đích 800 | Hoàn tất tầng 5.000 từ và ổn định kết quả thi thử |
 
 Thời lượng phải được điều chỉnh theo năng lực thực tế:
 
@@ -184,7 +202,7 @@ Hệ thống không giao kiến thức mới, chỉ hiển thị báo cáo tuầ
 
 ### Tuần 2
 
-- Tăng từ vựng lên 20 từ mỗi ngày theo cơ chế học mới và ôn xoay vòng.
+- Tăng từ vựng lên 25 từ mới mỗi ngày theo cơ chế học mới và ôn SRS đúng hạn.
 - Duy trì 15 phút nghe.
 - Duy trì 15 phút ngữ pháp hoặc đọc.
 - Hoàn thành ít nhất một Focus Timer 25 phút mỗi ngày.
@@ -221,25 +239,28 @@ Mỗi bản ghi `Lesson` có cả nội dung hiển thị và dữ liệu JSON c
 ```text
 Mục tiêu duy nhất trong ngày
 ├── 3 ý lý thuyết trọng tâm
-├── 20 flashcard + nghĩa + ví dụ + file phát âm riêng
+├── 25 flashcard + IPA + nghĩa từ + ví dụ + bản dịch
 ├── 4 hoạt động có số phút cụ thể
 ├── Mini Listening hoặc Reading tự luyện ngay trên web
 ├── Câu hỏi tự kiểm tra và đáp án dạng mở
 └── 3 điều kiện chiến thắng
 ```
 
-Dữ liệu seed tạo đủ 144 ngày thuộc 6 Phase. Mỗi ngày Listening có transcript và URL audio riêng; từ vựng được phân phối theo lịch học/ôn. Nội dung do dự án tự biên soạn theo cấu trúc TOEIC và các nguyên tắc học công khai; không sao chép đề, audio hoặc nội dung trả phí của Study4.
+Dữ liệu seed tạo đủ 200 ngày thuộc 6 Phase. Mỗi ngày có 25 từ mới lấy từ master bank theo các đoạn không giao nhau; từ chỉ quay lại khi đến hạn SRS. Nội dung luyện TOEIC do dự án tự biên soạn theo các nguyên tắc học công khai; không sao chép đề hoặc nội dung trả phí của Study4.
+
+Nguồn, giấy phép và cách tái tạo ngân hàng 5.000 từ được ghi tại `docs/VOCABULARY_DATA_ATTRIBUTION.md`.
 
 ### Flashcard và lặp lại ngắt quãng
 
-- Mỗi ngày có 20 thẻ; mặt trước là từ tiếng Anh, mặt sau là nghĩa và ví dụ.
-- Mỗi từ có nút nghe và một file WAV riêng trong `frontend/public/audio/vocabulary`.
+- Mỗi ngày có 25 thẻ mới; mặt trước có từ, IPA, nguyên câu ví dụ tiếng Anh và hai nút nghe. Mặt sau có thêm nghĩa từ và bản dịch tiếng Việt của câu ví dụ.
+- Mỗi thẻ có hai nút riêng: `Nghe từ` và `Nghe câu`. Trình duyệt phát giọng `en-US` theo yêu cầu, nên không cần lưu 10.000 file WAV cho 5.000 từ và 5.000 câu.
 - Có thể lật qua mặt nghĩa rồi lật ngược lại mặt từ nhiều lần.
-- Sau khi xem hai mặt, học viên chọn `Học lại`, `Khó`, `Tốt` hoặc `Dễ`, sau đó chủ động bấm `Next`.
+- Sau khi xem hai mặt, học viên chọn `Chưa nhớ`, `Khó nhớ`, `Đã nhớ` hoặc `Rất chắc`, sau đó chủ động bấm `Next`. Đây là phản hồi cho lịch SRS, không phải điểm đúng/sai: từ yếu quay lại sớm, từ rất chắc được giãn từ bốn ngày để tránh ôn thừa.
 - Có nút `Thẻ trước` để quay lại kiểm tra thẻ vừa học; việc quay lại không tự cộng thêm một lượt ôn.
 - Backend lưu từng lần đánh giá vào bảng `VocabularyReview`.
-- Thuật toán tính `intervalDays`, `easeFactor`, `repetitions` và `nextReviewAt`; đánh giá `Học lại` đưa thẻ về lịch ôn ngày mai, còn `Dễ` tạo khoảng ôn dài hơn.
+- Thuật toán tính `intervalDays`, `easeFactor`, `repetitions` và `nextReviewAt`; đánh giá `Chưa nhớ` đưa thẻ về lịch ôn ngày mai, còn `Rất chắc` tạo khoảng ôn dài hơn.
 - API `GET /api/v1/vocabulary/reviews/due` trả về các từ đã đến hạn ôn.
+- Khi mở flashcard của bài trong ngày, frontend tự đưa các từ đến hạn lên trước 25 từ của bài; vì vậy `Chưa nhớ` hôm nay sẽ thực sự xuất hiện lại từ ngày mai.
 
 ### Quy tắc ghi nhận thời gian
 
@@ -267,7 +288,9 @@ Dữ liệu seed tạo đủ 144 ngày thuộc 6 Phase. Mỗi ngày Listening c�
 
 Trang **Học hôm nay** là màn hình học chính, không phải một danh sách nhiệm vụ trung gian. Bài được giao mở trực tiếp trên trang này với mục tiêu, lý thuyết, flashcard có phát âm, audio Listening, mini practice, deadline, Focus Timer và nút hoàn thành. Học viên không phải mở bài rồi quay lại một trang khác để bấm timer.
 
-Trang **Lộ trình học** chỉ đóng vai trò bản đồ khóa học. Khi chọn một bài đã mở, hệ thống chuyển sang màn hình **Học hôm nay** để đọc và luyện; trong màn hình học luôn có liên kết quay lại lộ trình. Học viên chỉ xem được các Phase đã mở, còn quản trị viên được xem toàn bộ bài học ở tất cả Phase để kiểm tra nội dung.
+Trang **Lộ trình học** đóng vai trò bản đồ khóa học. Với học viên, bài đã hoàn thành luôn mở để học lại; đúng bài chưa hoàn thành đầu tiên được mở để học tiếp; các bài xa hơn vẫn khóa. Sau khi học đủ thời gian, hoàn thành các hoạt động và đạt ít nhất 60% mini practice, nút **Học bài tiếp theo** xuất hiện ngay, không phải chờ sang ngày hôm sau. Bài học thêm trong ngày là tự chọn nên không làm hỏng trạng thái chiến thắng hoặc ngày nghỉ đã ghi nhận.
+
+Quản trị viên được mở toàn bộ bài của tất cả Phase, kể cả nội dung đang ẩn, có thể nhảy đến bài bất kỳ, lật flashcard và làm mini practice nhiều lần. Lượt học thử của admin chỉ mô phỏng trên giao diện, không ghi vào tiến độ hay thống kê học viên.
 
 ```text
 Mở Học hôm nay và nhận đúng bài được giao
@@ -929,7 +952,7 @@ npm install
 npm run db:setup
 ```
 
-`db:setup` lần lượt sinh Prisma Client, chạy toàn bộ migration PostgreSQL và nạp khóa học 144 ngày.
+`db:setup` lần lượt sinh Prisma Client, chạy toàn bộ migration PostgreSQL và nạp khóa học 200 ngày.
 
 ### 3. Chạy backend riêng
 
@@ -953,14 +976,18 @@ npm run dev:frontend
 
 Mở `http://localhost:5173`.
 
-### Tài khoản demo sau khi seed
+### Tài khoản admin do seed tạo
 
-| Vai trò | Email | Mật khẩu |
-|---|---|---|
-| Học viên | `learner@toeicquest.local` | `Password@123` |
-| Quản trị | `admin@toeicquest.local` | `Password@123` |
+Điền trong file `.env` ở thư mục gốc trước khi chạy seed:
 
-Chỉ sử dụng mật khẩu này trong môi trường phát triển.
+```env
+SEED_ADMIN_EMAIL=admin@example.com
+SEED_ADMIN_PASSWORD=your-secure-password
+SEED_ADMIN_DISPLAY_NAME=System Admin
+SEED_ADMIN_ONLY=true
+```
+
+`SEED_ADMIN_ONLY=true` khiến seed xóa toàn bộ tài khoản khác cùng dữ liệu liên quan và chỉ giữ admin vừa cấu hình. Đặt thành `false` nếu cần giữ người dùng hiện có. Sau đó chạy `npm run prisma:seed` và đăng nhập bằng thông tin đã điền.
 
 ### Docker là tùy chọn
 
@@ -975,7 +1002,7 @@ npm test
 
 ## 25. Dữ liệu lộ trình và bản quyền
 
-Seed tạo **144 ngày học = 24 tuần × 6 ngày**, chia thành sáu Phase. Học viên mới không nhận bài ngay: endpoint onboarding dùng điểm hiện tại, mục tiêu, số phút/ngày và số ngày/tuần để tính `startingPhasePosition`, `estimatedWeeks` và ngày thi gợi ý.
+Seed tạo **200 ngày học ≈ 34 tuần × 6 ngày**, chia thành sáu Phase và phân phối đúng 5.000 term duy nhất. Học viên mới không nhận bài ngay: endpoint onboarding dùng điểm hiện tại, mục tiêu, số phút/ngày, khoảng trống từ vựng và đúng 6 ngày học/tuần để tính Phase cùng số tuần. Chỉ checkpoint `FULL_TEST` có đủ điểm Listening + Reading mới cập nhật `currentScore`; điểm từng Part chỉ phục vụ báo cáo điểm yếu.
 
 Nội dung bám theo cấu trúc được Study4 công khai:
 
@@ -984,14 +1011,14 @@ Nội dung bám theo cấu trúc được Study4 công khai:
 - Reading theo thứ tự Part 5 → Part 6 → Part 7.
 - Reading làm riêng từng Part, bấm giờ, tự chữa trước khi xem giải thích.
 - Listening nghe một lần, tự sửa, dictation rồi mới đọc transcript.
-- Duy trì 20 từ vựng mỗi ngày theo cơ chế ôn xoay vòng.
+- Duy trì 25 từ mới mỗi ngày; từ cũ chỉ quay lại theo lịch ôn SRS.
 - Phase nền tảng đi qua danh mục ngữ pháp công khai: kiến thức từ loại/cụm từ, mệnh đề/câu, danh từ, đại từ, tính từ, thì, thể, các dạng động từ, phân từ, trạng từ, giới từ, liên từ, mệnh đề quan hệ, điều kiện và so sánh.
 
 Nguồn tham khảo: [Lịch học STUDY4](https://study4.com/studyplan/), [chương trình Complete TOEIC](https://study4.com/courses/28/complete-toeic/) và [hướng dẫn cách học Complete TOEIC](https://study4.com/posts/1251/huong-dan-cach-hoc-khoa-complete-toeic-cua-study4-hieu-qua/).
 
 Dự án không sao chép video, flashcard, lời giải, audio hoặc ngân hàng câu hỏi của STUDY4. Mini practice, transcript và audio trong `frontend/public/audio` do dự án tự tạo. Người học chỉ mở website bên ngoài ở checkpoint/thi thử rồi quay lại nhập kết quả. TOEIC Quest không liên kết thương mại hay đại diện cho STUDY4.
 
-Tạo lại toàn bộ 25 file Listening và 48 file phát âm từ vựng sau khi sửa dữ liệu:
+Tạo lại các file Listening và bộ audio từ vựng tĩnh cũ sau khi sửa dữ liệu:
 
 ```powershell
 powershell.exe -ExecutionPolicy Bypass -File scripts/generate-listening-audio.ps1
@@ -1002,8 +1029,8 @@ powershell.exe -ExecutionPolicy Bypass -File scripts/generate-listening-audio.ps
 Đã hoàn thành:
 
 - Đăng ký, đăng nhập, access/refresh token và phân quyền học viên/admin.
-- Onboarding bắt buộc; tính Phase bắt đầu và số tuần dự kiến từ điểm đầu vào/mục tiêu.
-- Khóa học 24 tuần, 6 Phase, 144 ngày học và checklist cụ thể.
+- Onboarding bắt buộc; chọn mục tiêu 450/600/700/800, tính Phase bắt đầu, Phase kết thúc và số tuần dự kiến.
+- Khóa học khoảng 34 tuần, 6 Phase, 200 ngày học và checklist cụ thể.
 - 25 bài Listening có 25 transcript và 25 file WAV riêng; không còn dùng 4 file luân phiên.
 - 48 từ vựng có 48 file WAV phát âm riêng và giao diện flashcard lật thẻ.
 - Đánh giá flashcard được lưu trong PostgreSQL và tính lịch ôn theo spaced repetition.
@@ -1017,6 +1044,7 @@ powershell.exe -ExecutionPolicy Bypass -File scripts/generate-listening-audio.ps
 - Đo độ chính xác theo Part; Phase 2 trở đi bắt buộc checkpoint mastery từ 80%.
 - Tự mở Phase kế tiếp khi đạt tỷ lệ hoàn thành và mastery; backend cũng chặn truy cập bài của Phase chưa mở.
 - Khi đã hết bài trong Phase nhưng chưa đạt mastery, hệ thống tự giao checkpoint bên ngoài thay vì lặp bài cũ.
+- Full-test checkpoint cập nhật điểm hiện tại; khi đạt mục tiêu hệ thống dừng giao bài và cho kết thúc hoặc nâng lên mốc kế tiếp.
 - AI Daily Coach gọi API bên thứ ba khi có key, fallback sang rule engine khi không có và áp dụng lựa chọn cho **ngày học kế tiếp**.
 - Báo cáo tuần, mastery theo Part và danh sách học viên có nguy cơ bỏ học.
 - Trang admin chọn đúng Course/Phase, thêm, publish/ẩn, xóa có kiểm tra dữ liệu đang sử dụng.

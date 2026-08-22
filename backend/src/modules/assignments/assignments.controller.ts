@@ -39,6 +39,11 @@ export class AssignmentsController {
     return this.assignmentsService.getNextStudyAssignment(user.id);
   }
 
+  @Post('lessons/:id/study-now')
+  studyLessonNow(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.assignmentsService.studyLessonNow(user.id, user.role, id);
+  }
+
   @Patch(':id/select-plan')
   selectPlan(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() input: SelectPlanDto) {
     return this.assignmentsService.selectPlan(user.id, id, input.planType);

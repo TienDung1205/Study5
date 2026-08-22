@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { deleteJson, getJson, patchJson, postJson } from '../../../services/api-client';
 
 interface Dashboard { learners: number; activeLearners: number; courses: number; assignments: number; completedAssignments: number; externalSubmissions: number; completionRate: number }
@@ -11,6 +12,7 @@ interface AdminResource { id: string; name: string; provider: string; isActive: 
 interface AtRiskLearner { id: string; email: string; displayName: string; progress?: { streakCount: number; lastCompletedDate?: string }; _count: { assignments: number } }
 
 export function AdminPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const dashboard = useQuery({ queryKey: ['admin-dashboard'], queryFn: () => getJson<Dashboard>('/admin/reports/dashboard') });
   const users = useQuery({ queryKey: ['admin-users'], queryFn: () => getJson<AdminUser[]>('/admin/users') });
@@ -43,7 +45,7 @@ export function AdminPage() {
   const confirmDelete = (message: string, action: () => void) => { if (window.confirm(message)) action(); };
   const error = createCourse.error ?? createPhase.error ?? createLesson.error ?? createResource.error ?? removeCourse.error ?? removePhase.error ?? removeLesson.error;
 
-  return <section><header className="page-header"><div><p className="eyebrow">ADMIN CONSOLE</p><h2>Quản trị TOEIC Quest</h2><p className="muted">Quản lý đúng khóa và Phase được chọn, không còn mặc định phần tử đầu tiên.</p></div></header>
+  return <section><header className="page-header"><div><p className="eyebrow">ADMIN CONSOLE</p><h2>Quản trị TOEIC Quest</h2><p className="muted">Quản lý nội dung hoặc mở bất kỳ bài nào để học thử, làm lại và kiểm tra giao diện.</p></div><button type="button" onClick={() => navigate('/roadmap')}>Mở toàn bộ kho bài học</button></header>
     <div className="metric-grid"><Metric value={dashboard.data?.learners ?? 0} label="Học viên" /><Metric value={dashboard.data?.activeLearners ?? 0} label="Đang hoạt động" /><Metric value={dashboard.data?.completedAssignments ?? 0} label="Ngày hoàn thành" /><Metric value={`${Math.round((dashboard.data?.completionRate ?? 0) * 100)}%`} label="Tỷ lệ hoàn thành" /></div>
     {error && <p className="form-error">{error.message}</p>}
 
@@ -52,7 +54,7 @@ export function AdminPage() {
 
     <div className="content-manager"><div className="manager-toolbar"><label>Khóa học<select value={selectedCourseId} onChange={(event) => setSelectedCourseId(event.target.value)}>{courses.data?.map((course) => <option key={course.id} value={course.id}>{course.title}</option>)}</select></label><label>Phase<select value={selectedPhaseId} onChange={(event) => setSelectedPhaseId(event.target.value)}>{selectedCourse?.phases.map((phase) => <option key={phase.id} value={phase.id}>Phase {phase.position}: {phase.title}</option>)}</select></label></div>
       {selectedCourse && <div className="manager-actions"><strong>{selectedCourse.title}</strong><button onClick={() => toggleCourse.mutate(selectedCourse)}>{selectedCourse.isPublished ? 'Ẩn khóa' : 'Phát hành'}</button><button className="danger-button" onClick={() => confirmDelete(`Xóa khóa “${selectedCourse.title}” và toàn bộ nội dung?`, () => removeCourse.mutate(selectedCourse.id))}>Xóa khóa</button></div>}
-      {selectedPhase && <><div className="manager-actions"><span>Phase {selectedPhase.position}: <strong>{selectedPhase.title}</strong> · chuẩn {Math.round(selectedPhase.requiredRate * 100)}%</span><button className="danger-button" onClick={() => confirmDelete(`Xóa Phase “${selectedPhase.title}”?`, () => removePhase.mutate(selectedPhase.id))}>Xóa Phase</button></div><div className="lesson-admin-list">{selectedPhase.lessons.map((lesson) => <div key={lesson.id}><span><strong>{lesson.position}. {lesson.title}</strong><small>{lesson.durationMinutes} phút · {lesson.isPublished ? 'Đã phát hành' : 'Đang ẩn'}</small></span><button onClick={() => toggleLesson.mutate(lesson)}>{lesson.isPublished ? 'Ẩn' : 'Hiện'}</button><button className="danger-button" onClick={() => confirmDelete(`Xóa bài “${lesson.title}”?`, () => removeLesson.mutate(lesson.id))}>Xóa</button></div>)}</div></>}</div>
+      {selectedPhase && <><div className="manager-actions"><span>Phase {selectedPhase.position}: <strong>{selectedPhase.title}</strong> · chuẩn {Math.round(selectedPhase.requiredRate * 100)}%</span><button className="danger-button" onClick={() => confirmDelete(`Xóa Phase “${selectedPhase.title}”?`, () => removePhase.mutate(selectedPhase.id))}>Xóa Phase</button></div><div className="lesson-admin-list">{selectedPhase.lessons.map((lesson) => <div key={lesson.id}><span><strong>{lesson.position}. {lesson.title}</strong><small>{lesson.durationMinutes} phút · {lesson.isPublished ? 'Đã phát hành' : 'Đang ẩn'}</small></span><button onClick={() => navigate(`/today?lesson=${lesson.id}&from=admin`)}>Học thử</button><button onClick={() => toggleLesson.mutate(lesson)}>{lesson.isPublished ? 'Ẩn' : 'Hiện'}</button><button className="danger-button" onClick={() => confirmDelete(`Xóa bài “${lesson.title}”?`, () => removeLesson.mutate(lesson.id))}>Xóa</button></div>)}</div></>}</div>
 
     <div className="admin-forms"><form onSubmit={form(() => createCourse.mutate())}><h3>Tạo khóa học</h3><input placeholder="Tên khóa" value={courseTitle} onChange={(event) => setCourseTitle(event.target.value)} required /><input placeholder="slug-khong-dau" value={courseSlug} onChange={(event) => setCourseSlug(event.target.value)} required /><button>Tạo</button></form>
       <form onSubmit={form(() => createPhase.mutate())}><h3>Thêm Phase vào khóa đã chọn</h3><input placeholder="Tên Phase" value={phaseTitle} onChange={(event) => setPhaseTitle(event.target.value)} required /><button disabled={!selectedCourse}>Thêm</button></form>

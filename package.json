@@ -16,9 +16,13 @@
     "prisma:deploy": "npm run prisma:deploy --workspace backend",
     "prisma:push": "npm run prisma:push --workspace backend",
     "prisma:seed": "npm run prisma:seed --workspace backend",
+    "vocabulary:build": "node scripts/build-vocabulary-bank.mjs --translate",
     "db:setup": "npm run prisma:generate && npm run prisma:deploy && npm run prisma:seed"
   },
   "engines": {
     "node": ">=20.19.0"
+  },
+  "devDependencies": {
+    "@huggingface/transformers": "4.2.0"
   }
 }

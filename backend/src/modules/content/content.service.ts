@@ -57,15 +57,34 @@ export class ContentService {
       masteryByPhase.set(phaseId, Math.max(masteryByPhase.get(phaseId) ?? 0, submission.accuracy));
     }
     const currentPhasePosition = course.phases.find((phase) => phase.id === goal?.currentPhaseId)?.position ?? 1;
+    const visiblePhases = isAdmin
+      ? course.phases
+      : course.phases.filter((phase) =>
+          phase.position >= (goal?.startingPhasePosition ?? 1)
+          && phase.position <= (goal?.endingPhasePosition ?? course.phases.length));
+    const orderedAvailableLessons = visiblePhases
+      .filter((phase) => isAdmin || phase.position <= currentPhasePosition)
+      .flatMap((phase) => phase.lessons);
+    const nextUnlockedLessonId = isAdmin
+      ? null
+      : orderedAvailableLessons.find((lesson) => !completedLessonIds.has(lesson.id))?.id ?? null;
     return {
       ...course,
       durationWeeks: goal?.estimatedWeeks ?? course.durationWeeks,
       currentPhaseId: goal?.currentPhaseId,
-      phases: course.phases.map((phase) => ({
+      currentScore: goal?.currentScore ?? null,
+      targetScore: goal?.targetScore ?? course.targetScore,
+      startingPhasePosition: goal?.startingPhasePosition ?? 1,
+      endingPhasePosition: goal?.endingPhasePosition ?? course.phases.length,
+      targetTrack: goal?.targetTrack ?? 'MASTERY_800',
+      goalAchievedAt: goal?.goalAchievedAt ?? null,
+      lastCheckpointAt: goal?.lastCheckpointAt ?? null,
+      phases: visiblePhases.map((phase) => ({
         ...phase,
         lessons: phase.lessons.map((lesson) => ({
           ...lesson,
           completed: completedLessonIds.has(lesson.id),
+          unlocked: isAdmin || completedLessonIds.has(lesson.id) || lesson.id === nextUnlockedLessonId,
         })),
         completedLessons: phase.lessons.filter((lesson) => completedLessonIds.has(lesson.id)).length,
         checkpointSubmitted: masteryByPhase.has(phase.id),
@@ -83,23 +102,42 @@ export class ContentService {
         include: { phase: { select: { id: true, title: true, position: true } } },
       });
       if (!lesson) throw new NotFoundException('Không tìm thấy bài học.');
-      return lesson;
+      return { ...lesson, completed: false, unlocked: true };
     }
     const goal = await this.prisma.learningGoal.findUnique({
       where: { userId },
       include: { currentPhase: { select: { position: true } } },
     });
     if (!goal?.courseId || !goal.currentPhase) throw new NotFoundException('Học viên chưa có lộ trình đang học.');
-    const lesson = await this.prisma.lesson.findFirst({
+    const lessons = await this.prisma.lesson.findMany({
       where: {
-        id: lessonId,
         isPublished: true,
-        phase: { courseId: goal.courseId, position: { lte: goal.currentPhase.position } },
+        phase: {
+          courseId: goal.courseId,
+          position: { gte: goal.startingPhasePosition, lte: goal.endingPhasePosition },
+        },
       },
       include: { phase: { select: { id: true, title: true, position: true } } },
+      orderBy: [{ phase: { position: 'asc' } }, { position: 'asc' }],
     });
-    if (!lesson) throw new NotFoundException('Không tìm thấy bài học hoặc bài chưa được mở.');
-    return lesson;
+    const completedItems = await this.prisma.assignmentItem.findMany({
+      where: {
+        assignment: { userId },
+        lessonId: { in: lessons.map((lesson) => lesson.id) },
+        completedAt: { not: null },
+      },
+      distinct: ['lessonId'],
+      select: { lessonId: true },
+    });
+    const completedLessonIds = new Set(completedItems.map((item) => item.lessonId));
+    const lesson = lessons.find((item) => item.id === lessonId);
+    const nextUnlockedLesson = lessons.find((item) =>
+      item.phase.position <= goal.currentPhase!.position && !completedLessonIds.has(item.id));
+    const completed = completedLessonIds.has(lessonId);
+    if (!lesson || (!completed && lesson.id !== nextUnlockedLesson?.id)) {
+      throw new NotFoundException('Bài này chưa được mở. Hãy hoàn thành bài ngay trước đó trước.');
+    }
+    return { ...lesson, completed, unlocked: true };
   }
 
   listAdmin() {

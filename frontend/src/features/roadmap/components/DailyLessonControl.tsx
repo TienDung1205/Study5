@@ -23,7 +23,7 @@ export function DailyLessonControl({ assignment, item }: { assignment: DailyAssi
   const activityCount = item.lesson?.contentData?.activities.length ?? 0;
   const questionCount = item.lesson?.contentData?.practice.questions.length ?? 0;
   const learningStepsReady = (lessonProgress.data?.completedActivityIndexes.length ?? 0) >= activityCount
-    && (questionCount === 0 || Boolean(lessonProgress.data?.latestPracticeAttempt));
+    && (questionCount === 0 || (lessonProgress.data?.latestPracticeAttempt?.accuracy ?? 0) >= 0.6);
 
   const refreshLearningData = () => Promise.all([
     queryClient.invalidateQueries({ queryKey: ['today'] }),
@@ -55,13 +55,13 @@ export function DailyLessonControl({ assignment, item }: { assignment: DailyAssi
 
   return <section className={`daily-lesson-control${item.completedAt ? ' completed' : ''}`}>
     <div className="daily-control-heading"><div><span>BÀI ĐƯỢC GIAO HÔM NAY</span><h3>{item.completedAt ? 'Đã hoàn thành' : 'Học bài này để giữ đúng tiến độ'}</h3></div><div className="daily-deadline"><Clock3 size={16} /> {new Date(assignment.dueAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}</div></div>
-    <p>Yêu cầu: học tối thiểu {Math.ceil(requiredSeconds / 60)} phút, hoàn thành {activityCount} bước và nộp mini practice · Đã học {Math.floor(trackedSeconds / 60)} phút · +{item.xpReward} XP</p>
+    <p>Yêu cầu: học tối thiểu {Math.ceil(requiredSeconds / 60)} phút, hoàn thành {activityCount} bước và mini practice đạt ít nhất 60% · Đã học {Math.floor(trackedSeconds / 60)} phút · +{item.xpReward} XP</p>
     {activeSession && <Countdown startedAt={activeSession.startedAt} remainingBeforeSession={Math.max(0, requiredSeconds - trackedSeconds)} isStopping={finish.isPending} onComplete={() => finish.mutate(activeSession)} />}
     {(start.error || finish.error || complete.error) && <p className="form-error">{start.error?.message ?? finish.error?.message ?? complete.error?.message}</p>}
     <div className="daily-control-actions">
       {!item.completedAt && !enoughTime && !activeSession && <button type="button" disabled={start.isPending} onClick={() => start.mutate()}><PlayCircle size={17} /> {item.startedAt ? 'Tiếp tục học' : 'Bắt đầu học'}</button>}
       {activeSession && <button type="button" className="secondary-action" disabled={finish.isPending} onClick={() => finish.mutate(activeSession)}><Pause size={17} /> Tạm dừng</button>}
-      {!item.completedAt && enoughTime && <button type="button" disabled={complete.isPending || !learningStepsReady} title={!learningStepsReady ? 'Hoàn thành checklist và nộp mini practice trước' : undefined} onClick={() => complete.mutate()}><Check size={17} /> {learningStepsReady ? 'Hoàn thành bài' : 'Chưa đủ hoạt động'}</button>}
+      {!item.completedAt && enoughTime && <button type="button" disabled={complete.isPending || !learningStepsReady} title={!learningStepsReady ? 'Hoàn thành checklist và đạt ít nhất 60% mini practice trước' : undefined} onClick={() => complete.mutate()}><Check size={17} /> {learningStepsReady ? 'Hoàn thành bài' : 'Chưa đạt điều kiện'}</button>}
       {item.completedAt && <span className="daily-completed"><Check size={17} /> XP và tiến độ đã được cập nhật</span>}
     </div>
   </section>;

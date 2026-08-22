@@ -8,6 +8,7 @@ import { Roles } from '../../common/auth/roles.decorator';
 import { RolesGuard } from '../../common/auth/roles.guard';
 import { CompleteOnboardingDto } from './dto/complete-onboarding.dto';
 import { UpdateLearningGoalDto } from './dto/update-learning-goal.dto';
+import { UpgradeLearningGoalDto } from './dto/upgrade-learning-goal.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 import { UsersService } from './users.service';
 
@@ -31,6 +32,11 @@ export class UsersController {
   @Put('me/onboarding')
   completeOnboarding(@CurrentUser() user: AuthUser, @Body() input: CompleteOnboardingDto) {
     return this.usersService.completeOnboarding(user.id, input);
+  }
+
+  @Put('me/goal/upgrade')
+  upgradeGoal(@CurrentUser() user: AuthUser, @Body() input: UpgradeLearningGoalDto) {
+    return this.usersService.upgradeLearningGoal(user.id, input.targetScore);
   }
 }
 

@@ -1,7 +1,13 @@
 import { Prisma, PrismaClient, ResourceType, SkillType, UserRole } from '@prisma/client';
 import { hash } from 'bcryptjs';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { loadEnvFile } from 'node:process';
+
+for (const envPath of [resolve(process.cwd(), '.env'), resolve(process.cwd(), '../.env')]) {
+  if (existsSync(envPath)) loadEnvFile(envPath);
+  if (process.env.SEED_ADMIN_EMAIL !== undefined) break;
+}
 
 const prisma = new PrismaClient();
 
@@ -20,14 +26,41 @@ interface LessonDefinition {
 const STUDY_PLAN_URL = 'https://study4.com/studyplan/';
 const EXTERNAL_TEST_URL = 'https://study4.com/tests/toeic/';
 
+function requireSeedEnvironment(name: string): string {
+  const value = process.env[name]?.trim();
+  if (!value) throw new Error(`Thiếu ${name} trong file .env ở thư mục gốc.`);
+  return value;
+}
+
 interface VocabularyItem {
   term: string;
+  ipa?: string;
   meaning: string;
   example: string;
+  exampleMeaning?: string;
+  partOfSpeech?: string;
+  rank?: number;
+  targetBand?: 450 | 600 | 700 | 800;
+  audioText?: string;
+  exampleAudioText?: string;
 }
 
 interface VocabularyItemWithAudio extends VocabularyItem {
-  audioUrl: string;
+  audioUrl?: string;
+}
+
+interface VocabularyBank {
+  count: number;
+  tiers: Record<'450' | '600' | '700' | '800', number>;
+  entries: VocabularyItem[];
+}
+
+const vocabularyBank = JSON.parse(
+  readFileSync(resolve(process.cwd(), 'prisma/data/vocabulary-bank.json'), 'utf8'),
+) as VocabularyBank;
+
+if (vocabularyBank.count !== 5000 || new Set(vocabularyBank.entries.map((entry) => entry.term)).size !== 5000) {
+  throw new Error('Vocabulary bank phải có đúng 5.000 term duy nhất.');
 }
 
 const vocabularyTopics: Array<{ name: string; words: VocabularyItem[] }> = [
@@ -236,12 +269,10 @@ function getTheory(focus: string, skill: SkillType): string[] {
 
 function createContentData(contentSequence: number, day: number, focus: string, skill: SkillType, isCheckpoint: boolean, durationMinutes: number, instructions: string[]): Prisma.InputJsonValue {
   const vocabularyTopic = vocabularyTopics[(day - 1) % vocabularyTopics.length];
-  const vocabularyPool = vocabularyTopics.flatMap((topic) => topic.words);
-  const vocabularyStart = ((day - 1) * 5) % vocabularyPool.length;
-  const dailyVocabulary: VocabularyItemWithAudio[] = Array.from({ length: 20 }, (_, index) => {
-    const word = vocabularyPool[(vocabularyStart + index) % vocabularyPool.length];
-    return { ...word, audioUrl: `/audio/vocabulary/${word.term.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.wav` };
-  });
+  const vocabularyStart = (contentSequence - 1) * 25;
+  const dailyVocabulary: VocabularyItemWithAudio[] = vocabularyBank.entries
+    .slice(vocabularyStart, vocabularyStart + 25)
+    .map((word) => ({ ...word }));
   const isListening = skill === SkillType.LISTENING;
   const listeningMaterial = listeningScripts[day - 1];
   const readingPractice = createReadingPractice(contentSequence);
@@ -269,8 +300,8 @@ function createContentData(contentSequence: number, day: number, focus: string, 
     },
     successCriteria: isCheckpoint
       ? ['Đã làm bài ở nguồn ngoài và nhập kết quả.', 'Đã ghi ít nhất 3 lỗi cùng nguyên nhân.', 'Độ chính xác đạt 80% hoặc đã chọn lộ trình phục hồi.']
-      : ['Đã ôn 20 từ vựng và tự đặt ít nhất 2 câu.', 'Đã hoàn thành mini practice không nhìn đáp án trước.', 'Đã ghi lại ít nhất 1 lỗi hoặc điểm chưa chắc.'],
-    sourceNote: 'Nội dung do TOEIC Quest biên soạn theo dạng bài TOEIC và phương pháp học công khai; không sao chép ngân hàng câu hỏi trả phí của Study4.',
+      : ['Đã ôn 25 từ vựng và tự đặt ít nhất 2 câu.', 'Đã hoàn thành mini practice không nhìn đáp án trước.', 'Đã ghi lại ít nhất 1 lỗi hoặc điểm chưa chắc.'],
+    sourceNote: 'Từ vựng và IPA được trích từ nguồn mở có ghi công trong docs/VOCABULARY_DATA_ATTRIBUTION.md; ví dụ dịch máy Anh–Việt cần được người học báo lỗi nếu thấy chưa tự nhiên. Bài luyện TOEIC do dự án tự biên soạn, không sao chép ngân hàng trả phí của Study4.',
   };
   return JSON.parse(JSON.stringify(contentData)) as Prisma.InputJsonValue;
 }
@@ -337,10 +368,10 @@ const phaseDefinitions: Array<{
     durationDays: 12,
     lessons: createDailyLessons(
       12,
-      ['Cam kết Road to 800', 'Placement test đầu vào', '20 từ vựng chủ đề Office', 'Từ loại cơ bản', 'Dictation câu ngắn'],
+      ['Cam kết Road to 800', 'Placement test đầu vào', '25 từ vựng chủ đề Office', 'Từ loại cơ bản', 'Dictation câu ngắn'],
       SkillType.HABIT,
       [
-        'Ôn 20 từ TOEIC bằng flashcard hoặc danh sách từ cá nhân.',
+        'Ôn 25 từ TOEIC bằng flashcard hoặc danh sách từ cá nhân.',
         'Làm 10 câu Reading và 10 câu Listening ở nguồn bạn đang sử dụng.',
         'Tự sửa câu sai trước khi xem giải thích hoặc transcript.',
         'Ghi điểm và một lỗi điển hình vào nhật ký.',
@@ -351,9 +382,9 @@ const phaseDefinitions: Array<{
   {
     title: 'Xây nền chắc chắn',
     description: 'Củng cố từ vựng và 17 nhóm ngữ pháp cốt lõi thường gặp trong TOEIC.',
-    durationDays: 24,
+    durationDays: 48,
     lessons: createDailyLessons(
-      24,
+      48,
       ['Từ loại và cụm từ', 'Mệnh đề và câu', 'Danh từ', 'Đại từ', 'Tính từ', 'Thì động từ', 'Thể chủ động và bị động', 'Động từ nguyên mẫu', 'Động từ nguyên mẫu có to', 'Danh động từ', 'Phân từ', 'Trạng từ', 'Giới từ', 'Liên từ', 'Mệnh đề quan hệ', 'Câu điều kiện', 'Cấu trúc phân từ', 'Cấu trúc so sánh'],
       SkillType.GRAMMAR,
       [
@@ -368,9 +399,9 @@ const phaseDefinitions: Array<{
   {
     title: 'Giải mã Listening',
     description: 'Luyện lần lượt Part 1 → Part 2 → Part 4 → Part 3 và duy trì dictation mỗi ngày.',
-    durationDays: 30,
+    durationDays: 20,
     lessons: createDailyLessons(
-      30,
+      20,
       ['Part 1 · Mô tả người và vật', 'Part 2 · WH questions', 'Part 2 · Yes/No và câu gián tiếp', 'Part 4 · Tìm thông tin trực tiếp', 'Part 3 · Chủ đề, địa điểm, mục đích'],
       SkillType.LISTENING,
       [
@@ -385,9 +416,9 @@ const phaseDefinitions: Array<{
   {
     title: 'Chinh phục Reading',
     description: 'Luyện lần lượt Part 5 → Part 6 → Part 7, tăng độ chính xác trước khi tăng tốc.',
-    durationDays: 30,
+    durationDays: 20,
     lessons: createDailyLessons(
-      30,
+      20,
       ['Part 5 · Từ loại', 'Part 5 · Ngữ pháp và từ vựng', 'Part 6 · Liên kết câu', 'Part 7 · Bài đọc đơn', 'Part 7 · Đọc ghép và suy luận'],
       SkillType.READING,
       [
@@ -402,9 +433,9 @@ const phaseDefinitions: Array<{
   {
     title: 'Tăng tốc và vá điểm yếu',
     description: 'Luyện theo dữ liệu lỗi, quản lý thời gian và giữ độ chính xác ổn định.',
-    durationDays: 24,
+    durationDays: 60,
     lessons: createDailyLessons(
-      24,
+      60,
       ['Listening sprint 25 phút', 'Reading sprint 25 phút', 'Sửa nhóm lỗi ưu tiên', 'Mixed Parts có bấm giờ'],
       SkillType.REVIEW,
       [
@@ -419,9 +450,9 @@ const phaseDefinitions: Array<{
   {
     title: 'Về đích 800',
     description: 'Thi thử định kỳ ở nguồn ngoài, sửa lỗi có trọng tâm và ổn định chiến thuật phòng thi.',
-    durationDays: 24,
+    durationDays: 40,
     lessons: createDailyLessons(
-      24,
+      40,
       ['Full test và nhập kết quả', 'Sửa Listening', 'Sửa Reading', 'Ôn sổ lỗi', 'Mô phỏng áp lực thời gian'],
       SkillType.REVIEW,
       [
@@ -436,36 +467,40 @@ const phaseDefinitions: Array<{
 ];
 
 async function main(): Promise<void> {
-  const passwordHash = await hash('Password@123', 12);
+  const adminEmail = requireSeedEnvironment('SEED_ADMIN_EMAIL').toLowerCase();
+  const adminPassword = requireSeedEnvironment('SEED_ADMIN_PASSWORD');
+  const adminDisplayName = requireSeedEnvironment('SEED_ADMIN_DISPLAY_NAME');
+  const adminOnly = process.env.SEED_ADMIN_ONLY?.trim().toLowerCase() === 'true';
+  if (adminPassword.length < 8) throw new Error('SEED_ADMIN_PASSWORD phải có ít nhất 8 ký tự.');
+
+  const passwordHash = await hash(adminPassword, 12);
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@toeicquest.local' },
-    update: { displayName: 'TOEIC Quest Admin', role: UserRole.ADMIN, isActive: true },
+    where: { email: adminEmail },
+    update: { displayName: adminDisplayName, passwordHash, role: UserRole.ADMIN, isActive: true },
     create: {
-      email: 'admin@toeicquest.local',
-      displayName: 'TOEIC Quest Admin',
+      email: adminEmail,
+      displayName: adminDisplayName,
       passwordHash,
       role: UserRole.ADMIN,
     },
   });
-  const learner = await prisma.user.upsert({
-    where: { email: 'learner@toeicquest.local' },
-    update: { displayName: 'Demo Learner', role: UserRole.LEARNER, isActive: true },
-    create: {
-      email: 'learner@toeicquest.local',
-      displayName: 'Demo Learner',
-      passwordHash,
-      role: UserRole.LEARNER,
-    },
-  });
+  const removedUsers = adminOnly
+    ? await prisma.user.deleteMany({ where: { id: { not: admin.id } } })
+    : { count: 0 };
   const course = await prisma.course.upsert({
     where: { slug: 'road-to-toeic-800' },
-    update: { title: 'Road to TOEIC 800', isPublished: true },
+    update: {
+      title: 'Road to TOEIC 800',
+      description: 'Lộ trình đầy đủ 200 ngày học, khoảng 34 tuần, học 6 ngày mỗi tuần.',
+      durationWeeks: 34,
+      isPublished: true,
+    },
     create: {
       slug: 'road-to-toeic-800',
       title: 'Road to TOEIC 800',
-      description: 'Lộ trình 24 tuần, học 6 ngày mỗi tuần.',
+      description: 'Lộ trình đầy đủ 200 ngày học, khoảng 34 tuần, học 6 ngày mỗi tuần.',
       targetScore: 800,
-      durationWeeks: 24,
+      durationWeeks: 34,
       isPublished: true,
     },
   });
@@ -488,6 +523,9 @@ async function main(): Promise<void> {
         requiredRate: phaseIndex === 0 ? 1 : 0.8,
       },
     });
+    await prisma.lesson.deleteMany({
+      where: { phaseId: phase.id, position: { gt: phaseDefinition.durationDays } },
+    });
     for (const [lessonIndex, lesson] of phaseDefinition.lessons.entries()) {
       await prisma.lesson.upsert({
         where: { phaseId_position: { phaseId: phase.id, position: lessonIndex + 1 } },
@@ -501,32 +539,6 @@ async function main(): Promise<void> {
       });
     }
   }
-
-  const firstPhase = await prisma.phase.findFirstOrThrow({
-    where: { courseId: course.id },
-    orderBy: { position: 'asc' },
-  });
-  await prisma.learningGoal.upsert({
-    where: { userId: learner.id },
-    update: { courseId: course.id, currentPhaseId: firstPhase.id, currentScore: 500, targetScore: 800, estimatedWeeks: 24, startingPhasePosition: 1, onboardingCompletedAt: new Date() },
-    create: {
-      userId: learner.id,
-      courseId: course.id,
-      currentPhaseId: firstPhase.id,
-      currentScore: 500,
-      targetScore: 800,
-      dailyMinutes: 60,
-      preferredHour: 20,
-      estimatedWeeks: 24,
-      startingPhasePosition: 1,
-      onboardingCompletedAt: new Date(),
-    },
-  });
-  await prisma.learnerProgress.upsert({
-    where: { userId: learner.id },
-    update: {},
-    create: { userId: learner.id },
-  });
 
   const externalResources = [
     {
@@ -578,8 +590,8 @@ async function main(): Promise<void> {
     });
   }
 
-  console.info(`Seeded ${admin.email}, ${learner.email}, and ${course.slug}.`);
-  console.info('Demo password: Password@123');
+  console.info(`Seeded admin ${admin.email} and course ${course.slug}.`);
+  if (adminOnly) console.info(`SEED_ADMIN_ONLY đã xóa ${removedUsers.count} tài khoản khác.`);
 }
 
 main()

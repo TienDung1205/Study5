@@ -119,6 +119,10 @@ model LearningGoal {
   preferredHour         Int       @default(20)
   estimatedWeeks        Int?
   startingPhasePosition Int       @default(1)
+  endingPhasePosition   Int       @default(6)
+  targetTrack           String    @default("MASTERY_800")
+  goalAchievedAt        DateTime?
+  lastCheckpointAt      DateTime?
   onboardingCompletedAt DateTime?
   user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   course                Course?   @relation(fields: [courseId], references: [id], onDelete: SetNull)

@@ -15,7 +15,7 @@ export function RoadmapPage() {
   const today = useQuery({
     queryKey: ['today'],
     queryFn: () => getJson<DailyAssignment>('/assignments/today'),
-    enabled: user?.role === 'LEARNER',
+    enabled: user?.role === 'LEARNER' && Boolean(roadmap.data) && !roadmap.data?.goalAchievedAt,
   });
 
   if (roadmap.isPending) return <div className="empty-state">Đang tải lộ trình...</div>;
@@ -34,18 +34,22 @@ export function RoadmapPage() {
       <div><small>BÀI CẦN HỌC HÔM NAY</small><strong>{completedDailyItems}/{today.data.items.length} nội dung đã hoàn thành</strong><span>Deadline {new Date(today.data.dueAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}</span></div>
       <div className="roadmap-daily-links">{dailyLessonItems.map((item) => <button type="button" key={item.id} onClick={() => navigate(`/today?lesson=${item.lesson!.id}&from=roadmap`)}>{item.completedAt ? <Check size={15} /> : <PlayCircle size={15} />}{item.lesson?.title}</button>)}</div>
     </section>}
-    {today.isError && user?.role === 'LEARNER' && <div className="error-state">Không tải được bài giao hôm nay: {today.error.message}</div>}
+    {today.isError && user?.role === 'LEARNER' && !roadmap.data.goalAchievedAt && <div className="error-state">Không tải được bài giao hôm nay: {today.error.message}</div>}
     <div className="course-player roadmap-catalog">
       <aside className="curriculum-panel"><div className="curriculum-title"><strong>Nội dung khóa học</strong><span>{roadmap.data.phases.length} chặng</span></div>
         {roadmap.data.phases.map((phase) => {
           const active = roadmap.data.currentPhaseId === phase.id;
-          const canOpen = user?.role === 'ADMIN' || phase.unlocked;
+          const canExpand = user?.role === 'ADMIN' || phase.unlocked || phase.completedLessons > 0;
           const phaseProgress = phase.lessons.length ? Math.round((phase.completedLessons / phase.lessons.length) * 100) : 0;
           return <details key={phase.id} open={user?.role === 'ADMIN' || active} className="curriculum-phase">
-            <summary><span><small>PHASE {phase.position}</small><strong>{phase.title}</strong><em>{user?.role === 'ADMIN' ? `${phase.lessons.length} bài · quyền xem toàn bộ` : phase.skipped ? 'Có thể xem lại · đã bỏ qua theo điểm đầu vào' : phase.unlocked ? `${phase.completedLessons}/${phase.lessons.length} bài · ${phaseProgress}%${phase.masteryAccuracy !== null ? ` · Mastery ${Math.round(phase.masteryAccuracy * 100)}%` : ''}` : 'Hoàn thành Phase trước để mở'}</em></span>{canOpen ? <ChevronRight size={18} /> : <LockKeyhole size={17} />}</summary>
-            <div className="curriculum-lessons">{phase.lessons.map((lesson) => <button type="button" disabled={!canOpen} className={dailyLessonItems.some((item) => item.lesson?.id === lesson.id) ? 'selected' : ''} key={lesson.id} onClick={() => navigate(`/today?lesson=${lesson.id}&from=roadmap`)}>
-              <span className={`lesson-state${lesson.completed ? ' done' : ''}`}>{lesson.completed ? <Check size={13} /> : canOpen ? <PlayCircle size={14} /> : <LockKeyhole size={13} />}</span>
-              <span><strong>{lesson.title}</strong><small>{lesson.durationMinutes} phút · {skillLabel(lesson.skill)}{dailyLessonItems.some((item) => item.lesson?.id === lesson.id) ? ' · Hôm nay' : ''}</small></span></button>)}</div>
+            <summary><span><small>PHASE {phase.position}</small><strong>{phase.title}</strong><em>{user?.role === 'ADMIN' ? `${phase.lessons.length} bài · quyền xem toàn bộ` : phase.skipped ? 'Có thể xem lại · đã bỏ qua theo điểm đầu vào' : phase.unlocked ? `${phase.completedLessons}/${phase.lessons.length} bài · ${phaseProgress}%${phase.masteryAccuracy !== null ? ` · Mastery ${Math.round(phase.masteryAccuracy * 100)}%` : ''}` : 'Hoàn thành Phase trước để mở'}</em></span>{canExpand ? <ChevronRight size={18} /> : <LockKeyhole size={17} />}</summary>
+            <div className="curriculum-lessons">{phase.lessons.map((lesson) => {
+              const canOpenLesson = user?.role === 'ADMIN' || lesson.completed || lesson.unlocked;
+              const lessonStatus = user?.role === 'ADMIN' ? 'Học thử' : lesson.completed ? 'Học lại' : lesson.unlocked ? 'Có thể học' : 'Chưa mở';
+              return <button type="button" disabled={!canOpenLesson} className={dailyLessonItems.some((item) => item.lesson?.id === lesson.id) ? 'selected' : ''} key={lesson.id} onClick={() => navigate(`/today?lesson=${lesson.id}&from=roadmap`)}>
+                <span className={`lesson-state${lesson.completed ? ' done' : ''}`}>{lesson.completed ? <Check size={13} /> : canOpenLesson ? <PlayCircle size={14} /> : <LockKeyhole size={13} />}</span>
+                <span><strong>{lesson.title}</strong><small>{lesson.durationMinutes} phút · {skillLabel(lesson.skill)} · {lessonStatus}{dailyLessonItems.some((item) => item.lesson?.id === lesson.id) ? ' · Hôm nay' : ''}</small></span></button>;
+            })}</div>
           </details>;
         })}
       </aside>

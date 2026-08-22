@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { NotificationType } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { AssignmentsService } from '../assignments/assignments.service';
 import {
@@ -48,6 +49,9 @@ export class ExternalService {
     if (!input.totalScore && input.listeningScore && input.readingScore) {
       input.totalScore = input.listeningScore + input.readingScore;
     }
+    if (input.toeicPart === 'FULL_TEST' && !input.totalScore) {
+      throw new BadRequestException('Checkpoint Full test cần nhập đủ điểm Listening và Reading.');
+    }
     if ((input.correctAnswers === undefined) !== (input.totalQuestions === undefined)) {
       throw new BadRequestException('Cần nhập cả số câu đúng và tổng số câu.');
     }
@@ -62,8 +66,43 @@ export class ExternalService {
       update: { ...input, accuracy, userId },
       create: { ...input, accuracy, userId },
     });
+    let goalStatus: { achieved: boolean; currentScore: number | null; targetScore: number; canUpgradeTargets: number[] } | null = null;
+    if (input.toeicPart === 'FULL_TEST' && input.totalScore) {
+      const goal = await this.prisma.learningGoal.findUnique({ where: { userId } });
+      if (goal) {
+        const achieved = input.totalScore >= goal.targetScore;
+        const newlyAchieved = achieved && !goal.goalAchievedAt;
+        const checkpointAt = new Date();
+        await this.prisma.$transaction(async (transaction) => {
+          await transaction.learningGoal.update({
+            where: { userId },
+            data: {
+              currentScore: input.totalScore,
+              lastCheckpointAt: checkpointAt,
+              goalAchievedAt: achieved ? (goal.goalAchievedAt ?? checkpointAt) : undefined,
+            },
+          });
+          if (newlyAchieved) {
+            await transaction.notification.create({
+              data: {
+                userId,
+                type: NotificationType.ACHIEVEMENT,
+                title: `Đã đạt mục tiêu TOEIC ${goal.targetScore}`,
+                message: `Checkpoint mới nhất đạt ${input.totalScore} điểm. Bạn có thể kết thúc hoặc nâng mục tiêu.`,
+              },
+            });
+          }
+        });
+        goalStatus = {
+          achieved,
+          currentScore: input.totalScore,
+          targetScore: goal.targetScore,
+          canUpgradeTargets: [450, 600, 700, 800].filter((score) => score > goal.targetScore),
+        };
+      }
+    }
     const assignment = await this.assignmentsService.completeItem(userId, input.assignmentItemId);
-    return { submission, assignment };
+    return { submission, assignment, goalStatus };
   }
 
   history(userId: string) {

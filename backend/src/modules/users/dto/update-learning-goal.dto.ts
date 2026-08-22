@@ -2,20 +2,6 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { ArrayMaxSize, ArrayMinSize, IsArray, IsDateString, IsInt, IsOptional, Max, Min } from 'class-validator';
 
 export class UpdateLearningGoalDto {
-  @ApiPropertyOptional({ example: 500 })
-  @IsOptional()
-  @IsInt()
-  @Min(10)
-  @Max(990)
-  currentScore?: number;
-
-  @ApiPropertyOptional({ example: 800 })
-  @IsOptional()
-  @IsInt()
-  @Min(10)
-  @Max(990)
-  targetScore?: number;
-
   @ApiPropertyOptional({ example: '2027-01-15' })
   @IsOptional()
   @IsDateString()
@@ -31,8 +17,8 @@ export class UpdateLearningGoalDto {
   @ApiPropertyOptional({ example: [1, 2, 3, 4, 5, 6] })
   @IsOptional()
   @IsArray()
-  @ArrayMinSize(1)
-  @ArrayMaxSize(7)
+  @ArrayMinSize(6)
+  @ArrayMaxSize(6)
   @IsInt({ each: true })
   studyDays?: number[];
 

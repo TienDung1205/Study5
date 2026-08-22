@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsDateString, IsInt, IsOptional, Max, Min } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsDateString, IsIn, IsInt, IsOptional, Max, Min } from 'class-validator';
 
 export class CompleteOnboardingDto {
   @ApiProperty({ example: 500 })
@@ -10,8 +10,7 @@ export class CompleteOnboardingDto {
 
   @ApiProperty({ example: 800 })
   @IsInt()
-  @Min(50)
-  @Max(990)
+  @IsIn([450, 600, 700, 800])
   targetScore: number;
 
   @ApiProperty({ example: 60 })
@@ -22,8 +21,8 @@ export class CompleteOnboardingDto {
 
   @ApiProperty({ example: [1, 2, 3, 4, 5, 6] })
   @IsArray()
-  @ArrayMinSize(1)
-  @ArrayMaxSize(7)
+  @ArrayMinSize(6)
+  @ArrayMaxSize(6)
   @IsInt({ each: true })
   studyDays: number[];
 

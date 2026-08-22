@@ -4,10 +4,16 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { AssignmentStatus, NotificationType, PlanType, Prisma } from '@prisma/client';
+import { AssignmentStatus, NotificationType, PlanType, Prisma, UserRole } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
-import { isStudyDay, MASTERY_THRESHOLD, MIN_TRACKED_STUDY_RATIO } from '../../common/learning/learning-rules';
+import {
+  isStudyDay,
+  LESSON_PRACTICE_PASS_THRESHOLD,
+  MASTERY_THRESHOLD,
+  MIN_TRACKED_STUDY_RATIO,
+} from '../../common/learning/learning-rules';
 import { GamificationService } from '../gamification/gamification.service';
+import { ContentService } from '../content/content.service';
 
 const PLAN_MULTIPLIER: Record<PlanType, number> = {
   RECOVERY: 0.5,
@@ -20,6 +26,7 @@ export class AssignmentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly gamification: GamificationService,
+    private readonly contentService: ContentService,
   ) {}
 
   async getToday(userId: string) {
@@ -46,6 +53,31 @@ export class AssignmentsService {
       }
     }
     throw new BadRequestException('Lịch học chưa có ngày học nào trong tuần.');
+  }
+
+  async studyLessonNow(userId: string, role: UserRole, lessonId: string) {
+    if (role !== UserRole.LEARNER) {
+      throw new BadRequestException('Admin đã có chế độ học thử toàn bộ, không cần tạo nhiệm vụ học viên.');
+    }
+    const lesson = await this.contentService.getLesson(userId, lessonId, role);
+    const assignment = await this.getToday(userId);
+    if (!assignment) throw new NotFoundException('Không thể chuẩn bị lịch học hôm nay.');
+    const existingItem = assignment.items.find((item) => item.lessonId === lessonId);
+    if (existingItem) return assignment;
+
+    const position = assignment.items.reduce((highest, item) => Math.max(highest, item.position), 0) + 1;
+    await this.prisma.assignmentItem.create({
+      data: {
+        assignmentId: assignment.id,
+        lessonId,
+        title: lesson.title,
+        durationMinutes: lesson.durationMinutes,
+        xpReward: lesson.xpReward,
+        position,
+        isRequired: false,
+      },
+    });
+    return this.findByDate(userId, assignment.scheduledDate);
   }
 
   getRecent(userId: string) {
@@ -79,10 +111,14 @@ export class AssignmentsService {
   async startItem(userId: string, itemId: string) {
     const item = await this.findOwnedItem(userId, itemId);
     if (item.completedAt) return item;
-    await this.prisma.dailyAssignment.update({
-      where: { id: item.assignmentId },
-      data: { status: AssignmentStatus.IN_PROGRESS },
-    });
+    if (item.isRequired
+      || (item.assignment.status !== AssignmentStatus.COMPLETED
+        && item.assignment.status !== AssignmentStatus.EXCUSED)) {
+      await this.prisma.dailyAssignment.update({
+        where: { id: item.assignmentId },
+        data: { status: AssignmentStatus.IN_PROGRESS },
+      });
+    }
     return this.prisma.assignmentItem.update({
       where: { id: itemId },
       data: { startedAt: item.startedAt ?? new Date() },
@@ -128,6 +164,7 @@ export class AssignmentsService {
     if (item.externalResourceId && !item.externalSubmission) {
       throw new BadRequestException('Hãy nộp kết quả bài làm bên ngoài trước khi hoàn thành nhiệm vụ.');
     }
+    let completedLessonPhaseId: string | null = null;
     if (item.lessonId) {
       const trackedSeconds = item.studySessions.reduce((total, session) => total + session.durationSeconds, 0);
       const requiredSeconds = Math.ceil(item.durationMinutes * 60 * MIN_TRACKED_STUDY_RATIO);
@@ -135,14 +172,19 @@ export class AssignmentsService {
         const remainingMinutes = Math.ceil((requiredSeconds - trackedSeconds) / 60);
         throw new BadRequestException(`Cần ghi nhận thêm ít nhất ${remainingMinutes} phút học trước khi hoàn thành.`);
       }
-      const lesson = await this.prisma.lesson.findUnique({ where: { id: item.lessonId }, select: { contentData: true } });
+      const lesson = await this.prisma.lesson.findUnique({ where: { id: item.lessonId }, select: { contentData: true, phaseId: true } });
+      completedLessonPhaseId = lesson?.phaseId ?? null;
       const contentData = lesson?.contentData as { activities?: unknown[]; practice?: { questions?: unknown[] } } | null;
       const requiredActivities = contentData?.activities?.length ?? 0;
       const requiredQuestions = contentData?.practice?.questions?.length ?? 0;
       const [completedActivities, practiceAttempt] = await Promise.all([
         this.prisma.lessonActivityProgress.count({ where: { userId, lessonId: item.lessonId } }),
         requiredQuestions
-          ? this.prisma.miniPracticeAttempt.findFirst({ where: { userId, lessonId: item.lessonId }, select: { id: true } })
+          ? this.prisma.miniPracticeAttempt.findFirst({
+              where: { userId, lessonId: item.lessonId },
+              orderBy: { accuracy: 'desc' },
+              select: { id: true, accuracy: true },
+            })
           : Promise.resolve(null),
       ]);
       if (completedActivities < requiredActivities) {
@@ -151,12 +193,16 @@ export class AssignmentsService {
       if (requiredQuestions && !practiceAttempt) {
         throw new BadRequestException('Hãy nộp mini practice trước khi hoàn thành bài học.');
       }
+      if (practiceAttempt && practiceAttempt.accuracy < LESSON_PRACTICE_PASS_THRESHOLD) {
+        throw new BadRequestException('Mini practice cần đạt ít nhất 60%. Bạn có thể làm lại ngay.');
+      }
     }
     await this.prisma.assignmentItem.update({
       where: { id: itemId },
       data: { completedAt: new Date(), startedAt: item.startedAt ?? new Date() },
     });
     await this.gamification.awardXp(userId, item.xpReward, 'ASSIGNMENT_ITEM', itemId);
+    if (completedLessonPhaseId) await this.advancePhaseIfEligible(userId, completedLessonPhaseId);
     return this.finalizeAssignmentIfReady(userId, item.assignmentId);
   }
 
@@ -257,6 +303,9 @@ export class AssignmentsService {
       include: { user: { select: { timezone: true } } },
     });
     if (!goal?.currentPhaseId) throw new BadRequestException('Hãy thiết lập khóa học và Phase hiện tại.');
+    if (goal.goalAchievedAt) {
+      throw new ConflictException('Bạn đã đạt mục tiêu TOEIC. Hãy kết thúc lộ trình hoặc chọn mục tiêu cao hơn.');
+    }
     if (!isStudyDay(date, goal.studyDays, goal.user.timezone)) {
       return this.createRestAssignment(userId, goal.currentPhaseId, date, planType);
     }
@@ -351,30 +400,33 @@ export class AssignmentsService {
     });
     await this.gamification.awardXp(userId, 50, 'DAILY_WIN', assignmentId);
     await this.gamification.recordCompletedDay(userId, completedAt);
-    if (completed.phaseId) await this.advancePhaseIfEligible(userId, completed.phaseId);
     return completed;
   }
 
   private async advancePhaseIfEligible(userId: string, phaseId: string): Promise<void> {
-    const [goal, phase, completedLessons] = await Promise.all([
+    const [goal, phase] = await Promise.all([
       this.prisma.learningGoal.findUnique({ where: { userId } }),
       this.prisma.phase.findUnique({
         where: { id: phaseId },
         include: { lessons: { where: { isPublished: true }, select: { id: true } } },
       }),
-      this.prisma.assignmentItem.findMany({
-        where: {
-          assignment: { userId, phaseId },
-          lessonId: { not: null },
-          completedAt: { not: null },
-        },
-        distinct: ['lessonId'],
-        select: { lessonId: true },
-      }),
     ]);
     if (!goal || goal.currentPhaseId !== phaseId || !phase?.lessons.length) return;
+    const completedLessons = await this.prisma.assignmentItem.findMany({
+      where: {
+        assignment: { userId },
+        lessonId: { in: phase.lessons.map((lesson) => lesson.id) },
+        completedAt: { not: null },
+      },
+      distinct: ['lessonId'],
+      select: { lessonId: true },
+    });
     const completionRate = completedLessons.length / phase.lessons.length;
     if (completionRate < phase.requiredRate) return;
+
+    // The final phase of the selected score track remains active for checkpoints.
+    // A full-test checkpoint, not lesson completion alone, decides whether the goal is achieved.
+    if (phase.position >= goal.endingPhasePosition) return;
 
     if (phase.position > 1) {
       const masteredCheckpoint = await this.prisma.externalSubmission.findFirst({
@@ -442,7 +494,11 @@ export class AssignmentsService {
   private async findOwnedItem(userId: string, itemId: string) {
     const item = await this.prisma.assignmentItem.findFirst({
       where: { id: itemId, assignment: { userId } },
-      include: { externalSubmission: true, studySessions: { where: { endedAt: { not: null } } } },
+      include: {
+        assignment: { select: { status: true } },
+        externalSubmission: true,
+        studySessions: { where: { endedAt: { not: null } } },
+      },
     });
     if (!item) throw new NotFoundException('Không tìm thấy nội dung nhiệm vụ.');
     return item;

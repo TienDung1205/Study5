@@ -3,6 +3,21 @@ import { calculateNextReview } from '../../common/learning/spaced-repetition';
 import { PrismaService } from '../../database/prisma.service';
 import { RateFlashcardDto } from './dto/rate-flashcard.dto';
 
+export interface VocabularyCardData {
+  term: string;
+  ipa: string;
+  meaning: string;
+  example: string;
+  exampleMeaning: string;
+  partOfSpeech: string;
+  rank: number;
+  targetBand: number;
+  audioText: string;
+  exampleAudioText: string;
+  audioUrl?: string;
+  exampleAudioUrl?: string;
+}
+
 @Injectable()
 export class VocabularyService {
   constructor(private readonly prisma: PrismaService) {}
@@ -24,11 +39,37 @@ export class VocabularyService {
     });
   }
 
-  getDueCards(userId: string) {
-    return this.prisma.vocabularyReview.findMany({
+  async getDueCards(userId: string) {
+    const reviews = await this.prisma.vocabularyReview.findMany({
       where: { userId, nextReviewAt: { lte: new Date() } },
       orderBy: [{ nextReviewAt: 'asc' }, { term: 'asc' }],
       take: 100,
+    });
+    if (!reviews.length) return [];
+
+    const dueTerms = new Set(reviews.map((review) => review.term));
+    const lessons = await this.prisma.lesson.findMany({
+      where: { isPublished: true },
+      select: { contentData: true },
+    });
+    const cardsByTerm = new Map<string, VocabularyCardData>();
+    for (const lesson of lessons) {
+      const contentData = lesson.contentData;
+      if (!contentData || Array.isArray(contentData) || typeof contentData !== 'object') continue;
+      const vocabulary = (contentData as { vocabulary?: unknown }).vocabulary;
+      if (!Array.isArray(vocabulary)) continue;
+      for (const value of vocabulary) {
+        if (!value || typeof value !== 'object') continue;
+        const card = value as VocabularyCardData;
+        const term = typeof card.term === 'string' ? card.term.trim().toLowerCase() : '';
+        if (dueTerms.has(term) && !cardsByTerm.has(term)) cardsByTerm.set(term, card);
+      }
+      if (cardsByTerm.size === dueTerms.size) break;
+    }
+
+    return reviews.flatMap((review) => {
+      const card = cardsByTerm.get(review.term);
+      return card ? [{ ...review, card }] : [];
     });
   }
 }
