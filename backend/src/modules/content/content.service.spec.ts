@@ -3,6 +3,47 @@ import { PrismaService } from '../../database/prisma.service';
 import { ContentService } from './content.service';
 
 describe('ContentService lesson access', () => {
+  it('returns a roadmap title and description based on the learner goal', async () => {
+    const phases = [
+      { id: 'phase-1', position: 1, lessons: [{ id: 'lesson-1' }] },
+      { id: 'phase-2', position: 2, lessons: [{ id: 'lesson-2' }, { id: 'lesson-3' }] },
+      { id: 'phase-3', position: 3, lessons: [{ id: 'lesson-4' }] },
+    ];
+    const prisma = {
+      learningGoal: { findUnique: jest.fn().mockResolvedValue({
+        courseId: 'course-1',
+        currentPhaseId: 'phase-2',
+        currentScore: 450,
+        targetScore: 600,
+        startingPhasePosition: 2,
+        endingPhasePosition: 3,
+        targetTrack: 'CORE_600',
+        estimatedWeeks: 18,
+      }) },
+      course: { findUnique: jest.fn().mockResolvedValue({
+        id: 'course-1',
+        title: 'Master course',
+        description: 'Static description',
+        targetScore: 800,
+        durationWeeks: 34,
+        phases,
+      }) },
+      assignmentItem: { groupBy: jest.fn().mockResolvedValue([]) },
+      externalSubmission: { findMany: jest.fn().mockResolvedValue([]) },
+    } as unknown as PrismaService;
+    const service = new ContentService(prisma);
+
+    const roadmap = await service.getRoadmap('learner-1', UserRole.LEARNER);
+
+    expect(roadmap.title).toBe('Lộ trình TOEIC 600');
+    expect(roadmap.description).toContain('từ Phase 2 đến Phase 3');
+    expect(roadmap.description).toContain('3 ngày học');
+    expect(roadmap.phases).toHaveLength(3);
+    expect(roadmap.phases[0]).toMatchObject({ id: 'phase-1', skipped: true, unlocked: true });
+    expect(roadmap.phases[0].lessons[0]).toMatchObject({ id: 'lesson-1', unlocked: true });
+    expect(roadmap.phases[1]).toMatchObject({ id: 'phase-2', skipped: false, unlocked: true });
+  });
+
   it('allows an admin to view a lesson without a learner goal', async () => {
     const lesson = {
       id: 'lesson-1',

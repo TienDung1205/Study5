@@ -10,8 +10,13 @@ export class AssignmentsScheduler {
 
   @Cron(CronExpression.EVERY_HOUR)
   async markOverdue(): Promise<void> {
-    const count = await this.assignmentsService.markOverdueAssignments();
-    if (count > 0) this.logger.log(`Marked ${count} assignments as overdue.`);
+    const overdueCount = await this.assignmentsService.markOverdueAssignments();
+    if (overdueCount > 0) this.logger.log(`Marked ${overdueCount} assignments as overdue.`);
+  }
+
+  @Cron(CronExpression.EVERY_MINUTE)
+  async remindAtPreferredHour(): Promise<void> {
+    const reminderCount = await this.assignmentsService.createPreferredHourReminders();
+    if (reminderCount > 0) this.logger.log(`Created ${reminderCount} preferred-hour study reminders.`);
   }
 }
-

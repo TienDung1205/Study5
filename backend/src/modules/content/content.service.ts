@@ -57,25 +57,38 @@ export class ContentService {
       masteryByPhase.set(phaseId, Math.max(masteryByPhase.get(phaseId) ?? 0, submission.accuracy));
     }
     const currentPhasePosition = course.phases.find((phase) => phase.id === goal?.currentPhaseId)?.position ?? 1;
+    const startingPhasePosition = goal?.startingPhasePosition ?? 1;
+    const endingPhasePosition = goal?.endingPhasePosition ?? course.phases.length;
     const visiblePhases = isAdmin
       ? course.phases
-      : course.phases.filter((phase) =>
-          phase.position >= (goal?.startingPhasePosition ?? 1)
-          && phase.position <= (goal?.endingPhasePosition ?? course.phases.length));
+      : course.phases.filter((phase) => phase.position <= endingPhasePosition);
+    const plannedPhases = visiblePhases.filter((phase) => phase.position >= startingPhasePosition);
+    const targetScore = goal?.targetScore ?? course.targetScore;
+    const totalVisibleLessons = visiblePhases.reduce((total, phase) => total + phase.lessons.length, 0);
+    const totalPlannedLessons = plannedPhases.reduce((total, phase) => total + phase.lessons.length, 0);
+    const firstPlannedPhase = plannedPhases[0];
+    const lastPlannedPhase = plannedPhases.at(-1);
+    const roadmapTitle = isAdmin ? 'Kho nội dung TOEIC 450–800' : `Lộ trình TOEIC ${targetScore}`;
+    const roadmapDescription = isAdmin
+      ? `Toàn bộ ${course.phases.length} Phase và ${totalVisibleLessons} bài học dùng để quản trị, học thử và kiểm tra nội dung.`
+      : `Lộ trình cá nhân từ Phase ${firstPlannedPhase?.position ?? 1} đến Phase ${lastPlannedPhase?.position ?? 1}, gồm ${totalPlannedLessons} ngày học trong khoảng ${goal?.estimatedWeeks ?? course.durationWeeks} tuần. Các Phase trước điểm đầu vào vẫn được mở để ôn lại.`;
     const orderedAvailableLessons = visiblePhases
-      .filter((phase) => isAdmin || phase.position <= currentPhasePosition)
+      .filter((phase) => isAdmin || (phase.position >= startingPhasePosition && phase.position <= currentPhasePosition))
       .flatMap((phase) => phase.lessons);
     const nextUnlockedLessonId = isAdmin
       ? null
       : orderedAvailableLessons.find((lesson) => !completedLessonIds.has(lesson.id))?.id ?? null;
     return {
       ...course,
+      title: roadmapTitle,
+      description: roadmapDescription,
       durationWeeks: goal?.estimatedWeeks ?? course.durationWeeks,
+      studyDaysPerWeek: goal?.studyDays?.length ?? 6,
       currentPhaseId: goal?.currentPhaseId,
       currentScore: goal?.currentScore ?? null,
-      targetScore: goal?.targetScore ?? course.targetScore,
-      startingPhasePosition: goal?.startingPhasePosition ?? 1,
-      endingPhasePosition: goal?.endingPhasePosition ?? course.phases.length,
+      targetScore,
+      startingPhasePosition,
+      endingPhasePosition,
       targetTrack: goal?.targetTrack ?? 'MASTERY_800',
       goalAchievedAt: goal?.goalAchievedAt ?? null,
       lastCheckpointAt: goal?.lastCheckpointAt ?? null,
@@ -84,13 +97,16 @@ export class ContentService {
         lessons: phase.lessons.map((lesson) => ({
           ...lesson,
           completed: completedLessonIds.has(lesson.id),
-          unlocked: isAdmin || completedLessonIds.has(lesson.id) || lesson.id === nextUnlockedLessonId,
+          unlocked: isAdmin
+            || phase.position < startingPhasePosition
+            || completedLessonIds.has(lesson.id)
+            || lesson.id === nextUnlockedLessonId,
         })),
         completedLessons: phase.lessons.filter((lesson) => completedLessonIds.has(lesson.id)).length,
         checkpointSubmitted: masteryByPhase.has(phase.id),
         masteryAccuracy: masteryByPhase.get(phase.id) ?? null,
-        unlocked: isAdmin || phase.position <= currentPhasePosition,
-        skipped: phase.position < (goal?.startingPhasePosition ?? 1),
+        unlocked: isAdmin || phase.position < startingPhasePosition || phase.position <= currentPhasePosition,
+        skipped: phase.position < startingPhasePosition,
       })),
     };
   }
@@ -114,7 +130,7 @@ export class ContentService {
         isPublished: true,
         phase: {
           courseId: goal.courseId,
-          position: { gte: goal.startingPhasePosition, lte: goal.endingPhasePosition },
+          position: { lte: goal.endingPhasePosition },
         },
       },
       include: { phase: { select: { id: true, title: true, position: true } } },
@@ -132,9 +148,12 @@ export class ContentService {
     const completedLessonIds = new Set(completedItems.map((item) => item.lessonId));
     const lesson = lessons.find((item) => item.id === lessonId);
     const nextUnlockedLesson = lessons.find((item) =>
-      item.phase.position <= goal.currentPhase!.position && !completedLessonIds.has(item.id));
+      item.phase.position >= goal.startingPhasePosition
+      && item.phase.position <= goal.currentPhase!.position
+      && !completedLessonIds.has(item.id));
     const completed = completedLessonIds.has(lessonId);
-    if (!lesson || (!completed && lesson.id !== nextUnlockedLesson?.id)) {
+    const skipped = Boolean(lesson && lesson.phase.position < goal.startingPhasePosition);
+    if (!lesson || (!skipped && !completed && lesson.id !== nextUnlockedLesson?.id)) {
       throw new NotFoundException('Bài này chưa được mở. Hãy hoàn thành bài ngay trước đó trước.');
     }
     return { ...lesson, completed, unlocked: true };

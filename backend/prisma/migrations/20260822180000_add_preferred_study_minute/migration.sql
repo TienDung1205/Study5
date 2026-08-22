@@ -1,0 +1,2 @@
+ALTER TABLE "LearningGoal"
+ADD COLUMN "preferredMinute" INTEGER NOT NULL DEFAULT 0;

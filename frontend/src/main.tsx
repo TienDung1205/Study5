@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { AppProviders } from './app/providers';
 import { AppRouter } from './app/router';
 import { APP_NAME } from './config/app';
+import 'react-datepicker/dist/react-datepicker.css';
 import './styles/index.css';
 
 document.title = APP_NAME;

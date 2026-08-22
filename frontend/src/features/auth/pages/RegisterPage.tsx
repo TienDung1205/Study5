@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { ToastMessage } from '../../../components/feedback/ToastProvider';
 import { APP_NAME } from '../../../config/app';
 import { useAuthStore } from '../auth.store';
 import { PasswordInput } from '../components/PasswordInput';
@@ -18,7 +19,7 @@ export function RegisterPage() {
     <label>Họ tên<input value={displayName} onChange={(event) => setDisplayName(event.target.value)} minLength={2} required /></label>
     <label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label>
     <label>Mật khẩu<PasswordInput value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" minLength={8} required /></label>
-    {error && <p className="form-error">{error}</p>}<button className="primary-button">Tạo tài khoản</button>
+    {error && <ToastMessage variant="error">{error}</ToastMessage>}<button className="primary-button">Tạo tài khoản</button>
     <p>Đã có tài khoản? <Link to="/login">Đăng nhập</Link></p>
   </form></main>;
 }

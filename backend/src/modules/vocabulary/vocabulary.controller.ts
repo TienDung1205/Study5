@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthUser } from '../../common/auth/auth-user.interface';
 import { CurrentUser } from '../../common/auth/current-user.decorator';
@@ -21,5 +21,10 @@ export class VocabularyController {
   @Get('reviews/due')
   getDueCards(@CurrentUser() user: AuthUser) {
     return this.vocabularyService.getDueCards(user.id);
+  }
+
+  @Get('decks/:assignmentId')
+  getDailyDeck(@CurrentUser() user: AuthUser, @Param('assignmentId') assignmentId: string) {
+    return this.vocabularyService.getDailyDeck(user.id, assignmentId);
   }
 }

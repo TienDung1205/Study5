@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ToastMessage } from '../../../components/feedback/ToastProvider';
 import { APP_NAME } from '../../../config/app';
 import { deleteJson, getJson, patchJson, postJson } from '../../../services/api-client';
 
@@ -48,7 +49,7 @@ export function AdminPage() {
 
   return <section><header className="page-header"><div><p className="eyebrow">ADMIN CONSOLE</p><h2>Quản trị {APP_NAME}</h2><p className="muted">Quản lý nội dung hoặc mở bất kỳ bài nào để học thử, làm lại và kiểm tra giao diện.</p></div><button type="button" onClick={() => navigate('/roadmap')}>Mở toàn bộ kho bài học</button></header>
     <div className="metric-grid"><Metric value={dashboard.data?.learners ?? 0} label="Học viên" /><Metric value={dashboard.data?.activeLearners ?? 0} label="Đang hoạt động" /><Metric value={dashboard.data?.completedAssignments ?? 0} label="Ngày hoàn thành" /><Metric value={`${Math.round((dashboard.data?.completionRate ?? 0) * 100)}%`} label="Tỷ lệ hoàn thành" /></div>
-    {error && <p className="form-error">{error.message}</p>}
+    {error && <ToastMessage variant="error">{error.message}</ToastMessage>}
 
     <div className="admin-grid"><div className="table-card"><h3>Người dùng</h3><div className="simple-table">{users.data?.map((user) => <div key={user.id}><span>{user.displayName}<small>{user.email}</small></span><strong>{user.progress?.totalXp ?? 0} XP</strong><button onClick={() => toggleUser.mutate(user)}>{user.isActive ? 'Khóa' : 'Mở'}</button></div>)}</div></div>
       <div className="table-card"><h3>Cần hỗ trợ</h3>{atRisk.data?.slice(0, 8).map((learner) => <p key={learner.id}><strong>{learner.displayName}</strong><br /><small>{learner._count.assignments} nhiệm vụ quá hạn</small></p>)}{!atRisk.data?.length && <p className="muted">Không có học viên rủi ro.</p>}</div></div>

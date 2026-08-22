@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ExternalLink } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
+import { ToastMessage } from '../../../components/feedback/ToastProvider';
 import { getJson, postJson } from '../../../services/api-client';
 import type { DailyAssignment, ExternalResource, Roadmap } from '../../../types/domain';
 
@@ -31,7 +32,9 @@ export function ExternalPage() {
   function submit(event: FormEvent) { event.preventDefault(); submitResult.mutate(); }
   return <section><header className="page-header"><div><p className="eyebrow">HỌC NGOÀI HỆ THỐNG</p><h2>Nguồn luyện tập</h2><p className="muted">Làm bài ở nguồn ngoài rồi quay lại nhập kết quả.</p></div></header>
     <div className="resource-grid">{resources.data?.map((resource) => <article className="resource-card" key={resource.id}><h3>{resource.name}</h3><p>{resource.provider} · {resource.estimatedMinutes} phút</p><div className="inline-actions"><a href={resource.url} target="_blank" rel="noreferrer"><ExternalLink size={16} /> Mở website</a><button type="button" disabled={addToToday.isPending || Boolean(externalItem)} onClick={() => addToToday.mutate(resource.id)}>Giao hôm nay</button></div></article>)}</div>
-    {addToToday.error && <p className="form-error">{addToToday.error.message}</p>}
+    {addToToday.error && <ToastMessage variant="error">{addToToday.error.message}</ToastMessage>}
+    {addToToday.isSuccess && <ToastMessage variant="success">Đã thêm bài luyện vào nhiệm vụ hôm nay.</ToastMessage>}
+    {submitResult.isSuccess && <ToastMessage variant="success">Đã lưu kết quả luyện tập và cập nhật tiến độ.</ToastMessage>}
     {roadmap.data?.goalAchievedAt ? <div className="success-text">Bạn đã đạt mục tiêu TOEIC {roadmap.data.targetScore}. Hệ thống đã dừng nhận checkpoint cho đến khi bạn nâng mục tiêu.</div> : externalItem ? <form className="submission-form" onSubmit={submit}><h3>Nộp kết quả: {externalItem.title}</h3>
       <label>Phạm vi<select value={toeicPart} onChange={(e) => setToeicPart(e.target.value)}><option value="FULL_TEST">Full test</option>{[1, 2, 3, 4, 5, 6, 7].map((part) => <option key={part} value={`PART_${part}`}>Part {part}</option>)}</select></label>
       <label>Số câu đúng<input type="number" min={0} max={200} value={correctAnswers} onChange={(e) => setCorrectAnswers(e.target.value)} /></label>
@@ -41,7 +44,7 @@ export function ExternalPage() {
       <label>Số phút<input type="number" min={1} max={300} value={minutes} onChange={(e) => setMinutes(e.target.value)} /></label>
       <label>Part yếu<input value={weakParts} onChange={(e) => setWeakParts(e.target.value)} placeholder="Part 5, Part 7" /></label>
       <label className="full-field">Ghi chú<textarea value={note} onChange={(e) => setNote(e.target.value)} /></label>
-      {submitResult.error && <p className="form-error">{submitResult.error.message}</p>}<button className="primary-button">Nộp kết quả</button></form>
+      {submitResult.error && <ToastMessage variant="error">{submitResult.error.message}</ToastMessage>}<button className="primary-button">Nộp kết quả</button></form>
       : <div className="empty-state">Hôm nay chưa có nhiệm vụ bên ngoài cần nộp.</div>}
     <div className="table-card"><h3>Lịch sử kết quả</h3><div className="simple-table">{history.data?.map((item) => <div key={item.id}><span>{item.resource.provider}</span><strong>{item.totalScore ?? 'Không nhập điểm'}</strong><em>{new Date(item.submittedAt).toLocaleDateString('vi-VN')}</em></div>)}</div></div>
   </section>;

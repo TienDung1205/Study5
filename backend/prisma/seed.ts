@@ -282,7 +282,7 @@ function createContentData(contentSequence: number, day: number, focus: string, 
   const questions = isListening ? createListeningQuestions(contentSequence, listeningMaterial) : readingPractice.questions;
 
   const contentData = {
-    objective: isCheckpoint ? `Đo độ chính xác tuần ${Math.ceil(day / 6)} và xác định tối đa 3 lỗi ưu tiên.` : `Nắm được ${focus} và áp dụng vào một bài luyện ngắn trong ngày.`,
+    objective: isCheckpoint ? `Đo độ chính xác tuần ${Math.ceil(contentSequence / 6)} và xác định tối đa 3 lỗi ưu tiên.` : `Nắm được ${focus} và áp dụng vào một bài luyện ngắn trong ngày.`,
     theory: getTheory(focus, skill),
     vocabularyTopic: `${vocabularyTopic.name} · ôn xoay vòng`,
     vocabulary: dailyVocabulary,
@@ -300,7 +300,7 @@ function createContentData(contentSequence: number, day: number, focus: string, 
     },
     successCriteria: isCheckpoint
       ? ['Đã làm bài ở nguồn ngoài và nhập kết quả.', 'Đã ghi ít nhất 3 lỗi cùng nguyên nhân.', 'Độ chính xác đạt 80% hoặc đã chọn lộ trình phục hồi.']
-      : ['Đã ôn 25 từ vựng và tự đặt ít nhất 2 câu.', 'Đã hoàn thành mini practice không nhìn đáp án trước.', 'Đã ghi lại ít nhất 1 lỗi hoặc điểm chưa chắc.'],
+      : ['Đã học đủ số từ mới được giao và tự đặt ít nhất 2 câu.', 'Đã hoàn thành mini practice không nhìn đáp án trước.', 'Đã ghi lại ít nhất 1 lỗi hoặc điểm chưa chắc.'],
     sourceNote: 'Từ vựng và IPA được trích từ nguồn mở có ghi công trong docs/VOCABULARY_DATA_ATTRIBUTION.md; ví dụ dịch máy Anh–Việt cần được người học báo lỗi nếu thấy chưa tự nhiên. Bài luyện TOEIC do dự án tự biên soạn, không sao chép ngân hàng trả phí của Study4.',
   };
   return JSON.parse(JSON.stringify(contentData)) as Prisma.InputJsonValue;
@@ -320,7 +320,7 @@ function createDailyLessons(
     const day = index + 1;
     const isCheckpoint = day % 6 === 0;
     const learningDay = day - Math.floor(day / 6);
-    const focus = isCheckpoint ? `Checkpoint tuần ${Math.ceil(day / 6)}` : focuses[(learningDay - 1) % focuses.length];
+    const focus = isCheckpoint ? `Checkpoint tuần ${Math.ceil(contentSequence / 6)}` : focuses[(learningDay - 1) % focuses.length];
     const dailyInstructions = isCheckpoint
       ? [
           'Làm mini test theo Part đang học trên website luyện thi bên ngoài.',
@@ -330,7 +330,7 @@ function createDailyLessons(
         ]
       : instructions;
     return {
-      title: `Ngày ${String(day).padStart(2, '0')} · ${focus}`,
+      title: `Ngày ${String(contentSequence).padStart(2, '0')} · ${focus}`,
       description: isCheckpoint
         ? 'Đo tiến bộ bằng kết quả làm bài bên ngoài và cập nhật sổ lỗi.'
         : `Tập trung một mục tiêu: ${focus}.`,
@@ -368,10 +368,10 @@ const phaseDefinitions: Array<{
     durationDays: 12,
     lessons: createDailyLessons(
       12,
-      ['Cam kết Road to 800', 'Placement test đầu vào', '25 từ vựng chủ đề Office', 'Từ loại cơ bản', 'Dictation câu ngắn'],
+      ['Cam kết mục tiêu TOEIC', 'Placement test đầu vào', 'Từ vựng chủ đề Office', 'Từ loại cơ bản', 'Dictation câu ngắn'],
       SkillType.HABIT,
       [
-        'Ôn 25 từ TOEIC bằng flashcard hoặc danh sách từ cá nhân.',
+        'Học số từ TOEIC được giao theo nhịp cá nhân bằng flashcard.',
         'Làm 10 câu Reading và 10 câu Listening ở nguồn bạn đang sử dụng.',
         'Tự sửa câu sai trước khi xem giải thích hoặc transcript.',
         'Ghi điểm và một lỗi điển hình vào nhật ký.',
@@ -388,7 +388,7 @@ const phaseDefinitions: Array<{
       ['Từ loại và cụm từ', 'Mệnh đề và câu', 'Danh từ', 'Đại từ', 'Tính từ', 'Thì động từ', 'Thể chủ động và bị động', 'Động từ nguyên mẫu', 'Động từ nguyên mẫu có to', 'Danh động từ', 'Phân từ', 'Trạng từ', 'Giới từ', 'Liên từ', 'Mệnh đề quan hệ', 'Câu điều kiện', 'Cấu trúc phân từ', 'Cấu trúc so sánh'],
       SkillType.GRAMMAR,
       [
-        'Ôn 20–30 từ mới và review các từ đến hạn.',
+        'Học số từ mới theo nhịp cá nhân và review các từ đến hạn.',
         'Học một điểm ngữ pháp, tự viết 3 ví dụ trong ngữ cảnh công việc.',
         'Làm 20 câu Part 5 có bấm giờ 1 phút/câu.',
         'Tự chữa câu sai, sau đó mới đọc giải thích.',
@@ -487,15 +487,15 @@ async function main(): Promise<void> {
   const course = await prisma.course.upsert({
     where: { slug: 'road-to-toeic-800' },
     update: {
-      title: 'Road to TOEIC 800',
-      description: 'Lộ trình đầy đủ 200 ngày học, khoảng 34 tuần, học 6 ngày mỗi tuần.',
+      title: 'Study7 TOEIC 450–800',
+      description: 'Kho nội dung gốc 200 ngày để tạo lộ trình cá nhân cho các mục tiêu TOEIC 450, 600, 700 và 800.',
       durationWeeks: 34,
       isPublished: true,
     },
     create: {
       slug: 'road-to-toeic-800',
-      title: 'Road to TOEIC 800',
-      description: 'Lộ trình đầy đủ 200 ngày học, khoảng 34 tuần, học 6 ngày mỗi tuần.',
+      title: 'Study7 TOEIC 450–800',
+      description: 'Kho nội dung gốc 200 ngày để tạo lộ trình cá nhân cho các mục tiêu TOEIC 450, 600, 700 và 800.',
       targetScore: 800,
       durationWeeks: 34,
       isPublished: true,

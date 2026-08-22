@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, Clock3, Pause, PlayCircle } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { ToastMessage } from '../../../components/feedback/ToastProvider';
 import { getJson, patchJson, postJson } from '../../../services/api-client';
 import type { AssignmentItem, DailyAssignment, LessonLearningProgress } from '../../../types/domain';
 
@@ -18,8 +19,6 @@ export function DailyLessonControl({ assignment, item }: { assignment: DailyAssi
     enabled: Boolean(item.lesson?.id),
   });
   const trackedSeconds = item.studySessions?.reduce((sum, session) => sum + session.durationSeconds, 0) ?? 0;
-  const requiredSeconds = Math.ceil(item.durationMinutes * 60 * 0.5);
-  const enoughTime = trackedSeconds >= requiredSeconds;
   const activityCount = item.lesson?.contentData?.activities.length ?? 0;
   const questionCount = item.lesson?.contentData?.practice.questions.length ?? 0;
   const learningStepsReady = (lessonProgress.data?.completedActivityIndexes.length ?? 0) >= activityCount
@@ -54,40 +53,41 @@ export function DailyLessonControl({ assignment, item }: { assignment: DailyAssi
   });
 
   return <section className={`daily-lesson-control${item.completedAt ? ' completed' : ''}`}>
-    <div className="daily-control-heading"><div><span>BÀI ĐƯỢC GIAO HÔM NAY</span><h3>{item.completedAt ? 'Đã hoàn thành' : 'Học bài này để giữ đúng tiến độ'}</h3></div><div className="daily-deadline"><Clock3 size={16} /> {new Date(assignment.dueAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}</div></div>
-    <p>Yêu cầu: học tối thiểu {Math.ceil(requiredSeconds / 60)} phút, hoàn thành {activityCount} bước và mini practice đạt ít nhất 60% · Đã học {Math.floor(trackedSeconds / 60)} phút · +{item.xpReward} XP</p>
-    {activeSession && <Countdown startedAt={activeSession.startedAt} remainingBeforeSession={Math.max(0, requiredSeconds - trackedSeconds)} isStopping={finish.isPending} onComplete={() => finish.mutate(activeSession)} />}
-    {(start.error || finish.error || complete.error) && <p className="form-error">{start.error?.message ?? finish.error?.message ?? complete.error?.message}</p>}
+    <div className="daily-control-heading"><div><span>BÀI ĐANG HỌC TRONG LỘ TRÌNH</span><h3>{item.completedAt ? 'Đã hoàn thành' : 'Học bài này để giữ đúng tiến độ'}</h3></div><div className="daily-deadline"><Clock3 size={16} /> {new Date(assignment.dueAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}</div></div>
+    <p>Thời lượng tham khảo {item.durationMinutes} phút · Hoàn thành {activityCount} bước và mini practice đạt ít nhất 60% · Đã ghi nhận {formatStudyDuration(trackedSeconds)} · +{item.xpReward} XP</p>
+    {activeSession && <CountUpTimer startedAt={activeSession.startedAt} trackedBeforeSession={trackedSeconds} isStopping={finish.isPending} />}
+    {(start.error || finish.error || complete.error) && <ToastMessage variant="error">{start.error?.message ?? finish.error?.message ?? complete.error?.message}</ToastMessage>}
     <div className="daily-control-actions">
-      {!item.completedAt && !enoughTime && !activeSession && <button type="button" disabled={start.isPending} onClick={() => start.mutate()}><PlayCircle size={17} /> {item.startedAt ? 'Tiếp tục học' : 'Bắt đầu học'}</button>}
+      {!item.completedAt && !activeSession && <button type="button" disabled={start.isPending} onClick={() => start.mutate()}><PlayCircle size={17} /> {item.startedAt ? 'Tiếp tục học' : 'Bắt đầu học'}</button>}
       {activeSession && <button type="button" className="secondary-action" disabled={finish.isPending} onClick={() => finish.mutate(activeSession)}><Pause size={17} /> Tạm dừng</button>}
-      {!item.completedAt && enoughTime && <button type="button" disabled={complete.isPending || !learningStepsReady} title={!learningStepsReady ? 'Hoàn thành checklist và đạt ít nhất 60% mini practice trước' : undefined} onClick={() => complete.mutate()}><Check size={17} /> {learningStepsReady ? 'Hoàn thành bài' : 'Chưa đạt điều kiện'}</button>}
+      {!item.completedAt && !activeSession && <button type="button" disabled={complete.isPending || !learningStepsReady} title={!learningStepsReady ? 'Hoàn thành checklist và đạt ít nhất 60% mini practice trước' : undefined} onClick={() => complete.mutate()}><Check size={17} /> {learningStepsReady ? 'Hoàn thành bài' : 'Chưa đạt điều kiện'}</button>}
       {item.completedAt && <span className="daily-completed"><Check size={17} /> XP và tiến độ đã được cập nhật</span>}
     </div>
   </section>;
 }
 
-function Countdown({ startedAt, remainingBeforeSession, isStopping, onComplete }: { startedAt: number; remainingBeforeSession: number; isStopping: boolean; onComplete: () => void }) {
-  const [remainingSeconds, setRemainingSeconds] = useState(remainingBeforeSession);
-  const completionSent = useRef(false);
+function CountUpTimer({ startedAt, trackedBeforeSession, isStopping }: { startedAt: number; trackedBeforeSession: number; isStopping: boolean }) {
+  const [totalSeconds, setTotalSeconds] = useState(trackedBeforeSession);
 
   useEffect(() => {
     const update = () => {
       const elapsedSeconds = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
-      const nextRemaining = Math.max(0, remainingBeforeSession - elapsedSeconds);
-      setRemainingSeconds(nextRemaining);
-      if (nextRemaining === 0 && !completionSent.current) {
-        completionSent.current = true;
-        onComplete();
-      }
+      setTotalSeconds(trackedBeforeSession + elapsedSeconds);
     };
     update();
     const timer = window.setInterval(update, 1000);
     return () => window.clearInterval(timer);
-  }, [onComplete, remainingBeforeSession, startedAt]);
+  }, [startedAt, trackedBeforeSession]);
 
-  const minutes = Math.floor(remainingSeconds / 60).toString().padStart(2, '0');
-  const seconds = (remainingSeconds % 60).toString().padStart(2, '0');
-  const progress = remainingBeforeSession ? ((remainingBeforeSession - remainingSeconds) / remainingBeforeSession) * 100 : 100;
-  return <div className="study-countdown"><div><span>THỜI GIAN TỐI THIỂU CÒN LẠI</span><strong>{isStopping ? 'Đang lưu...' : `${minutes}:${seconds}`}</strong></div><div className="countdown-track"><i style={{ width: `${Math.min(100, progress)}%` }} /></div><small>Tạm dừng bất cứ lúc nào; thời gian đã học được cộng dồn.</small></div>;
+  return <div className="study-countdown count-up"><div><span>THỜI GIAN ĐÃ HỌC</span><strong>{isStopping ? 'Đang lưu...' : formatStudyDuration(totalSeconds, true)}</strong></div><small>Đồng hồ đếm tăng và chỉ dừng khi bạn bấm Tạm dừng. Không giới hạn thời gian học.</small></div>;
+}
+
+function formatStudyDuration(totalSeconds: number, showSeconds = false): string {
+  const hours = Math.floor(totalSeconds / 3_600);
+  const minutes = Math.floor((totalSeconds % 3_600) / 60);
+  const seconds = totalSeconds % 60;
+  if (showSeconds) return hours > 0
+    ? `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+    : `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  return hours > 0 ? `${hours} giờ ${minutes} phút` : `${minutes} phút`;
 }

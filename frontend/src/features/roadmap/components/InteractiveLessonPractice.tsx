@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BookOpenCheck, Check, Circle, Headphones, RotateCcw, Send, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { ToastMessage } from '../../../components/feedback/ToastProvider';
 import { getJson, patchJson, postJson } from '../../../services/api-client';
 import type { Lesson, LessonContentData, LessonLearningProgress, MiniPracticeAttempt } from '../../../types/domain';
 import { useAuthStore } from '../../auth/auth.store';
@@ -87,14 +88,14 @@ export function InteractiveLessonPractice({ lesson, data }: { lesson: Lesson; da
   };
 
   return <>
-    <section className="lesson-block interactive-plan"><div className="lesson-block-title"><span className="block-number">03</span><div><small>LÀM THEO THỨ TỰ · {isLearner ? 'CÓ LƯU TIẾN ĐỘ' : 'ADMIN MÔ PHỎNG'}</small><h3>Kế hoạch {lesson.durationMinutes} phút</h3></div></div>
+    <section className="lesson-block interactive-plan"><div className="lesson-block-title"><span className="block-number">03</span><div><small>LÀM THEO THỨ TỰ · {isLearner ? 'CÓ LƯU TIẾN ĐỘ' : 'ADMIN MÔ PHỎNG'}</small><h3>Thời lượng tham khảo {lesson.durationMinutes} phút</h3></div></div>
       <div className="activity-progress-line"><strong>{completedIndexes.size}/{data.activities.length} bước đã xong</strong><span>{isLearner ? 'Tích từng bước sau khi thực hiện thật.' : 'Bấm thử để kiểm tra giao diện; kết quả không được lưu.'}</span></div>
       <div className="activity-list">{data.activities.map((activity, activityIndex) => {
         const completed = completedIndexes.has(activityIndex);
         return <article className={completed ? 'activity-completed' : ''} key={`${activity.title}-${activityIndex}`}><span>{activity.minutes}'</span><div><strong>{activity.title}</strong>{activity.instructions.map((instruction) => <p key={instruction}>{instruction}</p>)}</div>
           <button type="button" className="activity-check" disabled={activityMutation.isPending} onClick={() => toggleActivity(activityIndex, completed)}>{completed ? <Check size={18} /> : <Circle size={18} />}{completed ? 'Đã làm' : 'Đánh dấu xong'}</button></article>;
       })}</div>
-      {activityMutation.error && <p className="form-error">{activityMutation.error.message}</p>}
+      {activityMutation.error && <ToastMessage variant="error">{activityMutation.error.message}</ToastMessage>}
     </section>
 
     <section className="lesson-block practice-block"><div className="lesson-block-title">{data.practice.kind === 'LISTENING' ? <Headphones size={20} /> : <BookOpenCheck size={20} />}<div><small>04 · MINI PRACTICE CÓ CHẤM KẾT QUẢ</small><h3>{data.practice.title}</h3></div></div>
@@ -115,7 +116,7 @@ export function InteractiveLessonPractice({ lesson, data }: { lesson: Lesson; da
       })}</div>
       {visibleAttempt ? <div className="practice-result"><div><strong>{visibleAttempt.correctAnswers}/{visibleAttempt.totalQuestions} câu đúng · {Math.round(visibleAttempt.accuracy * 100)}%</strong><span>{isLearner ? 'Kết quả đã lưu vào Tiến độ & thống kê.' : 'Kết quả mô phỏng của admin, không lưu vào thống kê.'}</span></div><button type="button" onClick={resetPractice}><RotateCcw size={16} /> Làm lại</button></div>
         : <button type="button" className="submit-practice" disabled={!allAnswered || practiceMutation.isPending} onClick={submitPractice}><Send size={16} /> {practiceMutation.isPending ? 'Đang chấm...' : isLearner ? 'Nộp mini practice' : 'Chấm thử'}</button>}
-      {practiceMutation.error && <p className="form-error">{practiceMutation.error.message}</p>}
+      {practiceMutation.error && <ToastMessage variant="error">{practiceMutation.error.message}</ToastMessage>}
     </section>
   </>;
 }

@@ -7,10 +7,12 @@ import {
 import { AssignmentStatus, NotificationType, PlanType, Prisma, UserRole } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import {
+  getDateKeyInTimezone,
+  getHourInTimezone,
+  getMinuteInTimezone,
   isStudyDay,
   LESSON_PRACTICE_PASS_THRESHOLD,
   MASTERY_THRESHOLD,
-  MIN_TRACKED_STUDY_RATIO,
 } from '../../common/learning/learning-rules';
 import { GamificationService } from '../gamification/gamification.service';
 import { ContentService } from '../content/content.service';
@@ -20,6 +22,8 @@ const PLAN_MULTIPLIER: Record<PlanType, number> = {
   STANDARD: 1,
   ACCELERATED: 1.5,
 };
+
+const STUDY_REMINDER_TITLE = 'Đến giờ học rồi';
 
 @Injectable()
 export class AssignmentsService {
@@ -31,8 +35,38 @@ export class AssignmentsService {
 
   async getToday(userId: string) {
     const today = this.startOfUtcDay(new Date());
-    const existing = await this.findByDate(userId, today);
-    return existing ?? this.generateForDate(userId, today, PlanType.STANDARD);
+    const [existing, goal] = await Promise.all([
+      this.findByDate(userId, today),
+      this.prisma.learningGoal.findUnique({ where: { userId }, select: { currentPhaseId: true } }),
+    ]);
+    if (!existing) return this.generateForDate(userId, today, PlanType.STANDARD);
+    if (!goal?.currentPhaseId || existing.phaseId === goal.currentPhaseId) return existing;
+
+    const canRealign = existing.status === AssignmentStatus.SCHEDULED
+      || existing.status === AssignmentStatus.AVAILABLE;
+    const hasLearningProgress = Boolean(existing.completedAt)
+      || existing.items.some((item) => item.startedAt
+        || item.completedAt
+        || item.externalSubmission
+        || item.studySessions.length > 0);
+    if (!canRealign || hasLearningProgress) return existing;
+
+    const items = await this.buildItems(userId, goal.currentPhaseId, existing.planType);
+    if (!items.length) return existing;
+    await this.prisma.$transaction([
+      this.prisma.assignmentItem.deleteMany({ where: { assignmentId: existing.id } }),
+      this.prisma.dailyAssignment.update({
+        where: { id: existing.id },
+        data: {
+          phaseId: goal.currentPhaseId,
+          status: AssignmentStatus.AVAILABLE,
+          completedAt: null,
+          vocabularyTerms: [],
+          items: { create: items },
+        },
+      }),
+    ]);
+    return this.findByDate(userId, today);
   }
 
   async generateToday(userId: string, planType: PlanType = PlanType.STANDARD) {
@@ -166,12 +200,6 @@ export class AssignmentsService {
     }
     let completedLessonPhaseId: string | null = null;
     if (item.lessonId) {
-      const trackedSeconds = item.studySessions.reduce((total, session) => total + session.durationSeconds, 0);
-      const requiredSeconds = Math.ceil(item.durationMinutes * 60 * MIN_TRACKED_STUDY_RATIO);
-      if (trackedSeconds < requiredSeconds) {
-        const remainingMinutes = Math.ceil((requiredSeconds - trackedSeconds) / 60);
-        throw new BadRequestException(`Cần ghi nhận thêm ít nhất ${remainingMinutes} phút học trước khi hoàn thành.`);
-      }
       const lesson = await this.prisma.lesson.findUnique({ where: { id: item.lessonId }, select: { contentData: true, phaseId: true } });
       completedLessonPhaseId = lesson?.phaseId ?? null;
       const contentData = lesson?.contentData as { activities?: unknown[]; practice?: { questions?: unknown[] } } | null;
@@ -295,6 +323,71 @@ export class AssignmentsService {
     return result.count;
   }
 
+  async createPreferredHourReminders(referenceTime = new Date()): Promise<number> {
+    const goals = await this.prisma.learningGoal.findMany({
+      where: {
+        goalAchievedAt: null,
+        onboardingCompletedAt: { not: null },
+      },
+      select: {
+        userId: true,
+        preferredHour: true,
+        preferredMinute: true,
+        studyDays: true,
+        user: { select: { timezone: true } },
+      },
+    });
+    const dueGoals = goals.filter((goal) => {
+      const timezone = goal.user.timezone || 'Asia/Bangkok';
+      return getHourInTimezone(referenceTime, timezone) === goal.preferredHour
+        && getMinuteInTimezone(referenceTime, timezone) === goal.preferredMinute
+        && isStudyDay(referenceTime, goal.studyDays, timezone);
+    });
+    if (!dueGoals.length) return 0;
+
+    const today = this.startOfUtcDay(referenceTime);
+    const recentSince = new Date(referenceTime.getTime() - 36 * 60 * 60 * 1_000);
+    const userIds = dueGoals.map((goal) => goal.userId);
+    const [completedAssignments, recentReminders] = await Promise.all([
+      this.prisma.dailyAssignment.findMany({
+        where: {
+          userId: { in: userIds },
+          scheduledDate: today,
+          completedAt: { not: null },
+        },
+        select: { userId: true },
+      }),
+      this.prisma.notification.findMany({
+        where: {
+          userId: { in: userIds },
+          type: NotificationType.SYSTEM,
+          title: STUDY_REMINDER_TITLE,
+          createdAt: { gte: recentSince },
+        },
+        select: { userId: true, createdAt: true },
+      }),
+    ]);
+    const completedUserIds = new Set(completedAssignments.map((assignment) => assignment.userId));
+    const goalsToNotify = dueGoals.filter((goal) => {
+      if (completedUserIds.has(goal.userId)) return false;
+      const timezone = goal.user.timezone || 'Asia/Bangkok';
+      const todayKey = getDateKeyInTimezone(referenceTime, timezone);
+      return !recentReminders.some((notification) => notification.userId === goal.userId
+        && getDateKeyInTimezone(notification.createdAt, timezone) === todayKey);
+    });
+    if (!goalsToNotify.length) return 0;
+
+    const result = await this.prisma.notification.createMany({
+      data: goalsToNotify.map((goal) => ({
+        userId: goal.userId,
+        type: NotificationType.SYSTEM,
+        title: STUDY_REMINDER_TITLE,
+        message: 'Bài tiếp theo đang chờ bạn. Hãy tiếp tục học để giữ đúng tiến độ hôm nay.',
+      })),
+    });
+    return result.count;
+  }
+
   private async generateForDate(userId: string, date: Date, planType: PlanType) {
     const existing = await this.findByDate(userId, date);
     if (existing) return existing;
@@ -319,6 +412,7 @@ export class AssignmentsService {
           scheduledDate: date,
           dueAt: this.endOfUtcDay(date),
           planType,
+          newWordsLimit: goal.newWordsPerDay,
           status: AssignmentStatus.AVAILABLE,
           items: { create: items },
         },
@@ -336,7 +430,7 @@ export class AssignmentsService {
     if (!phaseId) return [];
     const goal = await this.prisma.learningGoal.findUnique({ where: { userId } });
     const dailyMinutes = goal?.dailyMinutes ?? 60;
-    const limit = Math.max(20, Math.min(180, Math.round(dailyMinutes * PLAN_MULTIPLIER[planType])));
+    const limit = Math.max(15, Math.min(180, Math.round(dailyMinutes * PLAN_MULTIPLIER[planType])));
     const lessons = await this.prisma.lesson.findMany({
       where: { phaseId, isPublished: true },
       orderBy: { position: 'asc' },

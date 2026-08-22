@@ -2,6 +2,8 @@
 
 Nền tảng web quản lý lộ trình học TOEIC theo deadline hằng ngày, giúp người học duy trì thói quen và tiến tới mục tiêu 800 điểm. Kiến thức, từ vựng và bài luyện ngắn được học ngay trong Study7; chỉ các checkpoint và đề thi thử mới chuyển sang website bên ngoài để làm rồi nhập kết quả về hệ thống.
 
+> Muốn cài đặt hoặc chạy project: xem [Hướng dẫn chạy Study7](docs/RUNNING.md).
+
 ## 1. Bài toán
 
 Nhiều người học TOEIC đã có tài liệu nhưng vẫn không đạt mục tiêu vì:
@@ -13,7 +15,7 @@ Nhiều người học TOEIC đã có tài liệu nhưng vẫn không đạt m�
 - Học từ vựng, ngữ pháp, Listening và Reading rời rạc.
 - Không nhìn thấy những chiến thắng nhỏ trong quá trình học.
 
-Study7 giải quyết vấn đề bằng cách chia mục tiêu lớn thành các Phase ngắn, giao nhiệm vụ 6 ngày mỗi tuần và tạo cảm giác chiến thắng sau từng ngày, từng tuần và từng Phase.
+Study7 giải quyết vấn đề bằng cách chia mục tiêu lớn thành các Phase ngắn, giao nhiệm vụ theo lịch cá nhân 5–7 ngày mỗi tuần và tạo cảm giác chiến thắng sau từng ngày, từng tuần và từng Phase.
 
 ## 2. Mục tiêu sản phẩm
 
@@ -30,10 +32,10 @@ Study7 giải quyết vấn đề bằng cách chia mục tiêu lớn thành cá
 ### Có trong hệ thống
 
 - Quản lý khóa học, Phase, chương và bài học.
-- Lập lịch học 6 ngày/tuần.
+- Lập lịch học linh hoạt 5–7 ngày/tuần.
 - Giao nhiệm vụ hằng ngày.
 - Quản lý deadline và nhiệm vụ học bù.
-- 200 bài học theo ngày, mỗi bài có mục tiêu, lý thuyết tóm tắt, 25 từ mới không trùng, hoạt động và mini practice riêng.
+- 200 bài học theo ngày, mỗi bài có mục tiêu, lý thuyết tóm tắt, nguồn từ mới không trùng, hoạt động và mini practice riêng; số từ thực học tùy nhịp cá nhân.
 - Mini Listening phát tệp WAV do dự án tự tạo; mini Reading dùng văn bản do dự án tự biên soạn.
 - Focus Timer, tổng thời gian thực học và nhật ký học tập.
 - XP, level, streak, huy hiệu và phần thưởng Phase.
@@ -99,7 +101,7 @@ AI chỉ đưa ra đề xuất. Backend kiểm tra toàn bộ kết quả trư�
 
 ## 6. Lộ trình tham khảo
 
-Khung nội dung đầy đủ có 200 ngày học, tương đương khoảng 34 tuần nếu học 6 ngày/tuần. Sau onboarding, hệ thống chọn Phase bắt đầu theo điểm hiện tại, chọn Phase kết thúc theo một trong bốn mục tiêu và tính lại số tuần từ khối lượng Phase còn lại, khoảng trống từ vựng và số phút/ngày.
+Khung nội dung đầy đủ có 200 ngày học, tương đương khoảng 34 tuần ở nhịp tham chiếu 6 ngày/tuần. Sau onboarding, hệ thống chọn Phase bắt đầu theo điểm hiện tại, chọn Phase kết thúc theo một trong bốn mục tiêu và tính lại số tuần từ khối lượng Phase còn lại, khoảng trống từ vựng, thời lượng tham khảo do hệ thống tính và lịch 5–7 ngày/tuần.
 
 | Mục tiêu người học chọn | Phase kết thúc | Track hệ thống |
 | ---: | ---: | --- |
@@ -117,7 +119,7 @@ Khung nội dung đầy đủ có 200 ngày học, tương đương khoảng 34 
 
 Master bank chỉ có một bản ghi cho mỗi term. Các tầng cao hơn mở rộng tầng thấp hơn; bài học mới lấy các đoạn không giao nhau trong bank nên không lặp từ mới. Việc một từ xuất hiện lại chỉ xảy ra khi SRS xác định đã đến hạn ôn. Mỗi thẻ có IPA, nghĩa từ, ví dụ tiếng Anh, bản dịch ví dụ, nút nghe từ và nút nghe cả câu.
 
-Luồng nghiệp vụ: nhập điểm hiện tại → chọn 450/600/700/800 → xác định Phase bắt đầu/kết thúc → tính số tuần → giao bài 6 ngày/tuần → checkpoint cập nhật điểm → đạt mục tiêu thì dừng giao bài và cho kết thúc hoặc nâng mục tiêu.
+Luồng nghiệp vụ: nhập điểm hiện tại → chọn 450/600/700/800 → xác định Phase bắt đầu/kết thúc → tính số tuần → giao bài theo lịch 5–7 ngày/tuần → checkpoint cập nhật điểm → đạt mục tiêu thì dừng giao bài và cho kết thúc hoặc nâng mục tiêu.
 
 | Phase | Thời gian | Tên chặng | Mục tiêu |
 | --- | ---: | --- | --- |
@@ -202,7 +204,7 @@ Hệ thống không giao kiến thức mới, chỉ hiển thị báo cáo tuầ
 
 ### Tuần 2
 
-- Tăng từ vựng lên 25 từ mới mỗi ngày theo cơ chế học mới và ôn SRS đúng hạn.
+- Cho phép chọn 5–30 từ mới mỗi ngày sau buổi thử đầu tiên và vẫn ôn SRS đúng hạn.
 - Duy trì 15 phút nghe.
 - Duy trì 15 phút ngữ pháp hoặc đọc.
 - Hoàn thành ít nhất một Focus Timer 25 phút mỗi ngày.
@@ -246,7 +248,7 @@ Mục tiêu duy nhất trong ngày
 └── 3 điều kiện chiến thắng
 ```
 
-Dữ liệu seed tạo đủ 200 ngày thuộc 6 Phase. Mỗi ngày có 25 từ mới lấy từ master bank theo các đoạn không giao nhau; từ chỉ quay lại khi đến hạn SRS. Nội dung luyện TOEIC do dự án tự biên soạn theo các nguyên tắc học công khai; không sao chép đề hoặc nội dung trả phí của Study4.
+Dữ liệu seed tạo đủ 200 ngày thuộc 6 Phase và master bank 5.000 từ không trùng. Ngày đầu học thử 10 từ mới; sau đó học viên chọn 5, 10, 15, 20, 25 hoặc 30 từ mới/ngày. Từ chưa học được chuyển sang ngày sau, còn từ đã học chỉ quay lại khi đến hạn SRS. Nội dung luyện TOEIC do dự án tự biên soạn theo các nguyên tắc học công khai; không sao chép đề hoặc nội dung trả phí của Study4.
 
 Nguồn, giấy phép và cách tái tạo ngân hàng 5.000 từ được ghi tại `docs/VOCABULARY_DATA_ATTRIBUTION.md`.
 
@@ -260,17 +262,17 @@ Nguồn, giấy phép và cách tái tạo ngân hàng 5.000 từ được ghi t
 - Backend lưu từng lần đánh giá vào bảng `VocabularyReview`.
 - Thuật toán tính `intervalDays`, `easeFactor`, `repetitions` và `nextReviewAt`; đánh giá `Chưa nhớ` đưa thẻ về lịch ôn ngày mai, còn `Rất chắc` tạo khoảng ôn dài hơn.
 - API `GET /api/v1/vocabulary/reviews/due` trả về các từ đã đến hạn ôn.
-- Khi mở flashcard của bài trong ngày, frontend tự đưa các từ đến hạn lên trước 25 từ của bài; vì vậy `Chưa nhớ` hôm nay sẽ thực sự xuất hiện lại từ ngày mai.
+- Khi mở flashcard của bài trong ngày, hệ thống tự đưa các từ đến hạn lên trước số từ mới theo nhịp cá nhân; vì vậy `Chưa nhớ` hôm nay sẽ thực sự xuất hiện lại từ ngày mai.
 
 ### Quy tắc ghi nhận thời gian
 
 - Học viên phải bấm `Bắt đầu` để mở một phiên học.
-- Giao diện hiển thị đồng hồ đếm ngược thời gian tối thiểu còn lại theo từng giây.
+- Giao diện hiển thị đồng hồ đếm tăng theo thời gian thực học; không đặt giới hạn tối đa và không tự dừng.
 - Khi bấm `Tạm dừng`, backend lưu số giây đã học vào `StudySession`.
 - Có thể rời rồi `Tiếp tục học`; các phiên trước vẫn được cộng dồn.
-- Khi đồng hồ về `00:00`, frontend tự dừng và lưu phiên học.
 - Các phiên trong cùng bài được cộng dồn, vì vậy có thể nghỉ rồi học tiếp.
-- Nút `Hoàn thành` chỉ mở khi tổng thời gian đã ghi nhận đạt ít nhất 50% thời lượng bài được giao, đã tích đủ checklist và đã nộp mini practice.
+- Thời lượng do hệ thống tính chỉ là ước lượng để chia khối lượng lộ trình, không phải quota người học phải tự đặt.
+- Nút `Hoàn thành` mở khi đã tích đủ checklist và mini practice đạt ít nhất 60%; thời gian không phải điều kiện khóa bài.
 - Bài bên ngoài không dùng nút hoàn thành thường; học viên phải nộp kết quả trước.
 - Báo cáo tuần tổng hợp thời gian từ các phiên học đã kết thúc, không dựa vào thao tác mở link.
 
@@ -478,7 +480,6 @@ TUẦN 1 HOÀN THÀNH
 Một ngày được tính hoàn thành khi:
 
 - Hoàn thành toàn bộ nhiệm vụ bắt buộc của kế hoạch đã chọn.
-- Đáp ứng thời lượng học tối thiểu nếu nhiệm vụ yêu cầu.
 - Viết ghi chú tổng kết khi được cấu hình bắt buộc.
 - Nộp kết quả đối với nhiệm vụ bên ngoài bắt buộc có kết quả.
 - Hoàn thành trước deadline hoặc qua quy trình học bù.
@@ -885,7 +886,7 @@ Then: Backend trả về kết quả cũ và không cộng thêm XP
 
 ## 21. Tiêu chí thành công của đồ án
 
-- Tạo được lộ trình học 6 ngày mỗi tuần.
+- Tạo được lộ trình học linh hoạt từ 5 đến 7 ngày mỗi tuần.
 - Giao đúng nhiệm vụ theo Phase và deadline.
 - Xử lý đầy đủ hoàn thành, quá hạn, học bù và miễn nhiệm vụ.
 - Ghi nhận được kết quả từ website bên ngoài.
@@ -921,87 +922,13 @@ Không đặt `AI_API_KEY`, mật khẩu database, JWT secret hoặc storage sec
 
 File `.env` thật đã được `.gitignore`; chỉ commit `.env.example`.
 
-## 24. Chạy project không cần Docker
+## 24. Chạy project
 
-### Yêu cầu
-
-- Node.js 20.19 trở lên và npm.
-- PostgreSQL 15 trở lên được cài trực tiếp trên máy.
-- Không bắt buộc Redis hoặc MinIO ở phiên bản MVP hiện tại.
-
-### 1. Tạo database PostgreSQL local
-
-Có thể dùng pgAdmin hoặc `psql` để chạy:
-
-```sql
-CREATE DATABASE toeic_quest;
-```
-
-Cập nhật `backend/.env` theo tài khoản PostgreSQL trên máy:
-
-```env
-DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/toeic_quest
-```
-
-### 2. Cài dependency, migrate và seed
-
-Chạy tại thư mục gốc `D:\Test1908`:
-
-```bash
-npm install
-npm run db:setup
-```
-
-`db:setup` lần lượt sinh Prisma Client, chạy toàn bộ migration PostgreSQL và nạp khóa học 200 ngày.
-
-### 3. Chạy backend riêng
-
-Terminal thứ nhất:
-
-```bash
-npm run dev:backend
-```
-
-- API: `http://localhost:3000/api/v1`
-- Health check: `http://localhost:3000/api/v1/health`
-- Swagger: `http://localhost:3000/docs`
-
-### 4. Chạy frontend riêng
-
-Terminal thứ hai:
-
-```bash
-npm run dev:frontend
-```
-
-Mở `http://localhost:5173`.
-
-### Tài khoản admin do seed tạo
-
-Điền trong file `.env` ở thư mục gốc trước khi chạy seed:
-
-```env
-SEED_ADMIN_EMAIL=admin@example.com
-SEED_ADMIN_PASSWORD=your-secure-password
-SEED_ADMIN_DISPLAY_NAME=System Admin
-```
-
-Seed kiểm tra theo `SEED_ADMIN_EMAIL`: nếu email chưa tồn tại thì tạo tài khoản admin mới; nếu email đã tồn tại thì giữ nguyên toàn bộ tên, mật khẩu, quyền và trạng thái của tài khoản đó. Seed không xóa hoặc cập nhật bất kỳ tài khoản hiện có nào. Sau đó chạy `npm run prisma:seed` và đăng nhập bằng thông tin đã điền khi tài khoản vừa được tạo.
-
-### Docker là tùy chọn
-
-Nếu không muốn cài PostgreSQL trực tiếp, có thể dùng `docker compose up -d database`. Frontend và backend vẫn chạy riêng bằng hai lệnh phía trên.
-
-### Kiểm tra source
-
-```bash
-npm run build
-npm test
-```
+Hướng dẫn cài lần đầu, chạy hằng ngày, cấu hình database và xử lý lỗi được tách riêng tại [docs/RUNNING.md](docs/RUNNING.md).
 
 ## 25. Dữ liệu lộ trình và bản quyền
 
-Seed tạo **200 ngày học ≈ 34 tuần × 6 ngày**, chia thành sáu Phase và phân phối đúng 5.000 term duy nhất. Học viên mới không nhận bài ngay: endpoint onboarding dùng điểm hiện tại, mục tiêu, số phút/ngày, khoảng trống từ vựng và đúng 6 ngày học/tuần để tính Phase cùng số tuần. Chỉ checkpoint `FULL_TEST` có đủ điểm Listening + Reading mới cập nhật `currentScore`; điểm từng Part chỉ phục vụ báo cáo điểm yếu.
+Seed tạo **200 ngày học**, chia thành sáu Phase và phân phối đúng 5.000 term duy nhất. Học viên mới không nhận bài ngay: endpoint onboarding dùng điểm hiện tại, mục tiêu, thời lượng tham khảo do hệ thống tính, khoảng trống từ vựng và lịch 5–7 ngày/tuần để tính Phase cùng số tuần. Chỉ checkpoint `FULL_TEST` có đủ điểm Listening + Reading mới cập nhật `currentScore`; điểm từng Part chỉ phục vụ báo cáo điểm yếu.
 
 Nội dung bám theo cấu trúc được Study4 công khai:
 
@@ -1010,7 +937,7 @@ Nội dung bám theo cấu trúc được Study4 công khai:
 - Reading theo thứ tự Part 5 → Part 6 → Part 7.
 - Reading làm riêng từng Part, bấm giờ, tự chữa trước khi xem giải thích.
 - Listening nghe một lần, tự sửa, dictation rồi mới đọc transcript.
-- Duy trì 25 từ mới mỗi ngày; từ cũ chỉ quay lại theo lịch ôn SRS.
+- Duy trì nhịp 5–30 từ mới mỗi ngày tùy sức học; từ cũ chỉ quay lại theo lịch ôn SRS.
 - Phase nền tảng đi qua danh mục ngữ pháp công khai: kiến thức từ loại/cụm từ, mệnh đề/câu, danh từ, đại từ, tính từ, thì, thể, các dạng động từ, phân từ, trạng từ, giới từ, liên từ, mệnh đề quan hệ, điều kiện và so sánh.
 
 Nguồn tham khảo: [Lịch học STUDY4](https://study4.com/studyplan/), [chương trình Complete TOEIC](https://study4.com/courses/28/complete-toeic/) và [hướng dẫn cách học Complete TOEIC](https://study4.com/posts/1251/huong-dan-cach-hoc-khoa-complete-toeic-cua-study4-hieu-qua/).

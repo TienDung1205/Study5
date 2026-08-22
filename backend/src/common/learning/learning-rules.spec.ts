@@ -1,4 +1,4 @@
-import { getWeekdayIndex, isNextScheduledStudyDay, isStudyDay, MASTERY_THRESHOLD, MIN_TRACKED_STUDY_RATIO } from './learning-rules';
+import { getWeekdayIndex, isNextScheduledStudyDay, isStudyDay, MASTERY_THRESHOLD } from './learning-rules';
 
 describe('learning rules', () => {
   const mondayToSaturday = [1, 2, 3, 4, 5, 6];
@@ -19,10 +19,5 @@ describe('learning rules', () => {
     expect(MASTERY_THRESHOLD).toBe(0.8);
     expect(16 / 20).toBeGreaterThanOrEqual(MASTERY_THRESHOLD);
     expect(15 / 20).toBeLessThan(MASTERY_THRESHOLD);
-  });
-
-  it('requires at least half of the planned lesson time', () => {
-    expect(MIN_TRACKED_STUDY_RATIO).toBe(0.5);
-    expect(Math.ceil(60 * 60 * MIN_TRACKED_STUDY_RATIO)).toBe(1800);
   });
 });

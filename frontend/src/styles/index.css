@@ -849,7 +849,8 @@ button:disabled {
 }
 
 .curriculum-lessons button:hover,
-.curriculum-lessons button.selected {
+.curriculum-lessons button.selected,
+.curriculum-lessons button.today {
   background: #e8f5eb;
   border-left-color: #2a8158;
 }
@@ -1187,31 +1188,6 @@ button:disabled {
   width: min(1000px, 100%);
 }
 
-.flashcard-front-example {
-  width: min(1000px, 100%);
-  margin-top: 18px;
-  padding: 20px 24px;
-  text-align: center;
-  background: #f5f8ff;
-  border: 1px solid #dce5fa;
-  border-radius: 12px;
-}
-
-.flashcard-front-example small {
-  color: var(--brand-700);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: .08em;
-}
-
-.flashcard-front-example p {
-  margin: 9px 0 0;
-  color: var(--text);
-  font-size: clamp(23px, 2.3vw, 32px);
-  font-style: italic;
-  line-height: 1.5;
-}
-
 .flashcard-meaning > small,
 .flashcard-example > small {
   display: block;
@@ -1244,15 +1220,40 @@ button:disabled {
   font-style: normal;
 }
 
-.flashcard-audio-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 9px;
-  justify-content: center;
+.flashcard-word-back > strong {
+  font-size: clamp(30px, 4vw, 42px);
 }
 
-.flashcard-audio-actions .pronunciation-button {
-  margin-top: 0;
+.flashcard-context-sentence {
+  width: min(1000px, 100%);
+  margin: 0;
+  color: #17213c;
+  font-size: clamp(30px, 3.5vw, 46px);
+  font-style: italic;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.flashcard-context-word {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 4px;
+  padding: 9px 14px;
+  color: #24466b;
+  background: #eef6ff;
+  border: 1px solid #cfe0f3;
+  border-radius: 999px;
+}
+
+.flashcard-context-word strong {
+  color: var(--brand-700);
+}
+
+.flashcard-context-word span::before {
+  margin-right: 10px;
+  color: #9ab0c6;
+  content: "·";
 }
 
 .pronunciation-button,
@@ -1283,29 +1284,12 @@ button:disabled {
   border: 0;
 }
 
-.flashcard-ratings > p {
-  margin: 0 0 9px;
-  color: var(--muted);
+.flashcard-rating-question {
+  margin: 0 0 12px;
+  color: #20364d;
+  font-size: 18px;
+  font-weight: 750;
   text-align: center;
-  font-size: 15px;
-  line-height: 1.5;
-}
-
-.flashcard-rating-guide {
-  display: grid;
-  gap: 3px;
-  margin-bottom: 12px;
-  padding: 12px 15px;
-  color: #174d80;
-  background: #eef6ff;
-  border: 1px solid #c9dff5;
-  border-radius: 11px;
-  text-align: center;
-}
-
-.flashcard-rating-guide span {
-  font-size: 13px;
-  line-height: 1.5;
 }
 
 .flashcard-ratings > div {
@@ -1316,19 +1300,12 @@ button:disabled {
 
 .flashcard-ratings button {
   display: grid;
-  gap: 3px;
-  min-height: 78px;
-  padding: 13px 10px;
+  min-height: 52px;
+  padding: 10px;
   cursor: pointer;
   background: #fff;
   border: 1px solid var(--border);
   border-radius: 10px;
-}
-
-.flashcard-ratings button span {
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.35;
 }
 
 .flashcard-ratings .rating-again {
@@ -2367,7 +2344,185 @@ textarea {
 }
 
 .roadmap-catalog .curriculum-panel {
-  max-height: 820px;
+  max-height: none;
+  overflow: visible;
+  border-right: 0;
+}
+
+.roadmap-catalog {
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+}
+
+.roadmap-catalog .curriculum-title {
+  align-items: center;
+  padding: 24px 28px;
+}
+
+.roadmap-catalog .curriculum-title strong {
+  font-size: 22px;
+}
+
+.roadmap-catalog .curriculum-title span {
+  font-size: 16px;
+}
+
+.roadmap-catalog .curriculum-phase summary {
+  padding: 22px 28px;
+}
+
+.roadmap-catalog .curriculum-phase summary small {
+  font-size: 13px;
+}
+
+.roadmap-catalog .curriculum-phase summary strong {
+  font-size: 22px;
+  line-height: 1.35;
+}
+
+.roadmap-catalog .curriculum-phase summary em {
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.roadmap-catalog .curriculum-lessons button {
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 14px;
+  min-height: 88px;
+  padding: 18px 28px 18px 36px;
+}
+
+.roadmap-catalog .curriculum-lessons button strong {
+  overflow: visible;
+  font-size: 18px;
+  line-height: 1.4;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.roadmap-catalog .curriculum-lessons button small {
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.roadmap-catalog .lesson-state {
+  width: 28px;
+  height: 28px;
+}
+
+.toast-viewport {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 12px;
+  width: min(420px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.app-toast {
+  position: relative;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 30px;
+  gap: 12px;
+  align-items: center;
+  min-height: 70px;
+  padding: 16px 14px 18px 16px;
+  overflow: hidden;
+  color: #17263a;
+  background: #fff;
+  border: 1px solid #cfdded;
+  border-radius: 14px;
+  box-shadow: 0 14px 38px rgb(24 55 92 / 20%);
+  animation: toast-enter 180ms ease-out;
+  pointer-events: auto;
+}
+
+.app-toast .toast-icon {
+  color: var(--brand-600);
+}
+
+.app-toast.success .toast-icon {
+  color: #168154;
+}
+
+.app-toast.warning .toast-icon {
+  color: #c26a08;
+}
+
+.app-toast.error .toast-icon {
+  color: #d0342c;
+}
+
+.toast-message {
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.app-toast > button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  color: #63758b;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+}
+
+.app-toast > button:hover {
+  color: #17263a;
+  background: #edf4fb;
+}
+
+.toast-progress {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  background: var(--brand-600);
+  transform-origin: left;
+  animation: toast-countdown 5s linear forwards;
+}
+
+.app-toast.success .toast-progress {
+  background: #20a36c;
+}
+
+.app-toast.warning .toast-progress {
+  background: #e18a22;
+}
+
+.app-toast.error .toast-progress {
+  background: #df4b43;
+}
+
+@keyframes toast-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+@keyframes toast-countdown {
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@media (max-width: 640px) {
+  .toast-viewport {
+    right: 16px;
+    bottom: 16px;
+    left: 16px;
+    width: auto;
+  }
 }
 
 .roadmap-guide {
@@ -2398,6 +2553,73 @@ textarea {
   margin: 0 0 20px;
   color: var(--muted-text);
   line-height: 1.65;
+}
+
+.roadmap-back-button {
+  padding: 0;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+}
+
+.lesson-sequence-navigation {
+  display: grid;
+  grid-template-columns: minmax(0, 320px) minmax(0, 320px);
+  gap: 6px;
+  justify-content: space-between;
+  margin: 0 0 16px;
+  padding: 6px;
+  background: #fff;
+  border: 1px solid #dbe6f3;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgb(35 74 116 / 6%);
+}
+
+.lesson-sequence-navigation.bottom {
+  margin: 16px 0 0;
+}
+
+.lesson-sequence-navigation button {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  min-width: 0;
+  min-height: 46px;
+  padding: 6px 10px;
+  color: #24466b;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  transition: color .18s ease, background-color .18s ease;
+}
+
+.lesson-sequence-navigation button:not(:disabled):hover {
+  color: var(--brand-700);
+  background: #eef6ff;
+}
+
+.lesson-sequence-navigation button:last-child {
+  justify-self: end;
+  justify-content: flex-end;
+}
+
+.lesson-sequence-navigation button:first-child {
+  justify-self: start;
+}
+
+.lesson-sequence-navigation button:disabled {
+  cursor: not-allowed;
+  opacity: .42;
+}
+
+.lesson-sequence-navigation button > span {
+  overflow: hidden;
+  min-width: 0;
+  font-weight: 700;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .back-to-roadmap {
@@ -2755,6 +2977,10 @@ textarea {
 
   .roadmap-guide {
     padding: 32px 20px;
+  }
+
+  .lesson-sequence-navigation {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 
   .external-assignment-note {
@@ -3312,21 +3538,6 @@ textarea:focus {
   font-size: 24px;
 }
 
-.countdown-track {
-  height: 7px;
-  overflow: hidden;
-  background: #d4e5f5;
-  border-radius: 999px;
-}
-
-.countdown-track i {
-  display: block;
-  height: 100%;
-  background: linear-gradient(90deg, #0b74e5, #00a2ff);
-  border-radius: inherit;
-  transition: width 1s linear;
-}
-
 .study-countdown small {
   color: #6a8298;
   line-height: 1.4;
@@ -3350,10 +3561,6 @@ textarea:focus {
   background: var(--brand-700);
   border-color: var(--brand-700);
   box-shadow: 0 5px 15px rgb(8 102 217 / 18%);
-}
-
-.flashcard-ratings button.selected span {
-  color: #dcecff;
 }
 
 .flashcard-navigation {
@@ -3442,4 +3649,293 @@ textarea:focus {
     gap: 8px;
     align-items: flex-start;
   }
+}
+/* Adaptive vocabulary pace */
+.vocabulary-pace-picker {
+  width: min(760px, 100%);
+  margin: 18px auto;
+  padding: 20px;
+  border: 1px solid #bfdbfe;
+  border-radius: 16px;
+  background: #eff6ff;
+  text-align: left;
+}
+
+.vocabulary-pace-picker > strong { color: #0f3f82; font-size: 1.08rem; }
+.vocabulary-pace-picker > p { margin: 6px 0 14px; color: #475569; }
+.vocabulary-pace-picker > div,
+.vocabulary-pace-setting > div { display: grid; grid-template-columns: repeat(6, minmax(70px, 1fr)); gap: 10px; }
+.vocabulary-pace-picker > div button,
+.vocabulary-pace-setting > div button {
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+  padding: 12px 8px;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  background: #fff;
+  color: #0759c7;
+}
+.vocabulary-pace-picker > div button:hover,
+.vocabulary-pace-setting > div button.selected,
+.vocabulary-pace-picker > div button.recommended { border-color: #0866d9; background: #e8f2ff; box-shadow: 0 0 0 2px rgb(8 102 217 / 12%); }
+.vocabulary-pace-picker > div button strong,
+.vocabulary-pace-setting > div button strong { font-size: 1.12rem; }
+.vocabulary-pace-picker > div button span,
+.vocabulary-pace-setting > div button span { font-size: .78rem; }
+.vocabulary-pace-picker > div button em { color: #0866d9; font-size: .7rem; font-style: normal; font-weight: 800; text-transform: uppercase; }
+.vocabulary-pace-saved { color: #047857; font-weight: 700; }
+
+.vocabulary-pace-setting {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 18px;
+  border: 1px solid #dbe6f3;
+  border-radius: 14px;
+}
+.vocabulary-pace-setting legend { padding: 0 8px; font-weight: 800; }
+.vocabulary-pace-setting p { margin: 0 0 12px; color: #64748b; }
+.vocabulary-pace-setting small { display: block; margin-top: 10px; color: #64748b; }
+
+.goal-target-setting {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 18px;
+  border: 1px solid #dbe6f3;
+  border-radius: 14px;
+}
+
+.goal-target-setting legend {
+  padding: 0 8px;
+  font-weight: 800;
+}
+
+.goal-target-setting p {
+  margin: 0 0 12px;
+  color: #64748b;
+}
+
+.goal-target-setting > div {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(90px, 1fr));
+  gap: 10px;
+}
+
+.goal-target-setting button {
+  padding: 13px 10px;
+  color: #0759c7;
+  font-size: 1.05rem;
+  font-weight: 800;
+  cursor: pointer;
+  background: #fff;
+  border: 1px solid #bfd6f4;
+  border-radius: 12px;
+}
+
+.goal-target-setting button.selected {
+  background: #e8f2ff;
+  border-color: #0866d9;
+  box-shadow: 0 0 0 2px rgb(8 102 217 / 12%);
+}
+
+.goal-target-setting button:disabled {
+  color: #94a3b8;
+  cursor: not-allowed;
+  background: #f1f5f9;
+}
+
+.settings-form > label > small {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.compact-learning-settings {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(230px, 290px);
+  gap: 14px;
+  justify-content: start;
+}
+
+.compact-learning-settings label {
+  display: grid;
+  gap: 8px;
+}
+
+.compact-learning-settings label small,
+.onboarding-time-fields label small {
+  color: #64748b;
+  font-size: .76rem;
+  font-weight: 500;
+}
+
+.date-field {
+  display: grid;
+  gap: 8px;
+}
+
+.date-field > span {
+  font-weight: 800;
+}
+
+.study7-picker {
+  width: 100%;
+}
+
+.study7-picker .react-datepicker__input-container {
+  display: block;
+}
+
+.picker-text-shell {
+  position: relative;
+  display: grid;
+  width: 100%;
+  background: #fff;
+  border-radius: 12px;
+}
+
+.picker-text-shell > input,
+.picker-text-mask {
+  grid-row: 1;
+  grid-column: 1;
+}
+
+.picker-text-mask {
+  z-index: 0;
+  overflow: hidden;
+  height: 54px;
+  padding: 14px 48px 14px 16px;
+  color: #9aa9ba;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 1rem;
+  font-weight: 650;
+  line-height: 24px;
+  letter-spacing: .03em;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  pointer-events: none;
+}
+
+.picker-text-mask__filled {
+  visibility: hidden;
+}
+
+.study7-picker .react-datepicker__input-container input,
+.study7-manual-time input {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 54px;
+  padding: 14px 48px 14px 16px;
+  color: #17263a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 1rem;
+  font-weight: 650;
+  line-height: 24px;
+  letter-spacing: .03em;
+  background: transparent;
+  border: 1px solid #c9d8cf;
+  border-radius: 12px;
+  outline: 0;
+}
+
+.study7-picker .react-datepicker__input-container input::placeholder,
+.study7-manual-time input::placeholder {
+  color: #a8b5c4;
+  opacity: 1;
+}
+
+.study7-picker .react-datepicker__input-container input:focus,
+.study7-manual-time input:focus {
+  border-color: #0866d9;
+  box-shadow: 0 0 0 3px rgb(8 102 217 / 12%);
+}
+
+.study7-picker .react-datepicker__calendar-icon {
+  top: 50%;
+  right: 13px;
+  left: auto;
+  z-index: 2;
+  box-sizing: border-box;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  color: #0866d9;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.study7-date-picker .react-datepicker__close-icon {
+  right: 38px;
+}
+
+.study7-manual-time {
+  position: relative;
+  width: 100%;
+}
+
+.study7-manual-time > svg {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  color: #64748b;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.react-datepicker-popper {
+  z-index: 1000;
+}
+
+.study7-calendar {
+  overflow: hidden;
+  border-color: #cfe0f3;
+  border-radius: 12px;
+  box-shadow: 0 14px 34px rgb(24 55 92 / 18%);
+}
+
+.study7-calendar .react-datepicker__header {
+  background: #eef6ff;
+  border-color: #cfe0f3;
+}
+
+.study7-calendar .react-datepicker__day--selected,
+.study7-calendar .react-datepicker__day--keyboard-selected {
+  color: #fff !important;
+  background: #0866d9 !important;
+}
+
+.study7-calendar .react-datepicker__month-select,
+.study7-calendar .react-datepicker__year-select {
+  padding: 5px 7px;
+  color: #183b63;
+  background: #fff;
+  border: 1px solid #c9d8cf;
+  border-radius: 7px;
+}
+
+.onboarding-time-fields {
+  display: grid;
+  grid-template-columns: minmax(230px, 290px);
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.onboarding-time-fields label {
+  display: grid;
+  gap: 8px;
+  font-weight: 800;
+}
+
+@media (max-width: 640px) {
+  .vocabulary-pace-picker > div,
+  .vocabulary-pace-setting > div { grid-template-columns: repeat(3, 1fr); }
+  .goal-target-setting > div { grid-template-columns: repeat(2, 1fr); }
+  .compact-learning-settings,
+  .onboarding-time-fields { grid-template-columns: minmax(0, 290px); }
+}
+
+@media (max-width: 480px) {
+  .compact-learning-settings,
+  .onboarding-time-fields { grid-template-columns: 1fr; }
 }

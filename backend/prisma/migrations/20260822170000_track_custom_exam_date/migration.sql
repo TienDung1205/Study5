@@ -1,0 +1,2 @@
+ALTER TABLE "LearningGoal"
+ADD COLUMN "examDateIsCustom" BOOLEAN NOT NULL DEFAULT false;

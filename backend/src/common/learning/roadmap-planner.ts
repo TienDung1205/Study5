@@ -11,6 +11,18 @@ export interface RoadmapPlan {
 }
 
 export const TOEIC_TARGETS = [450, 600, 700, 800] as const;
+export const VOCABULARY_PACE_OPTIONS = [5, 10, 15, 20, 25, 30] as const;
+export const DEFAULT_TRIAL_WORDS_PER_DAY = 10;
+export const MIN_STUDY_DAYS_PER_WEEK = 5;
+export const MAX_STUDY_DAYS_PER_WEEK = 7;
+
+export function recommendDailyMinutes(currentScore: number, targetScore: number): number {
+  const scoreGap = Math.max(0, targetScore - currentScore);
+  if (scoreGap <= 100) return 30;
+  if (scoreGap <= 250) return 45;
+  if (scoreGap <= 450) return 60;
+  return 90;
+}
 
 const TARGET_CONFIG = {
   450: { endingPhasePosition: 2, track: 'FOUNDATION_450', vocabularyCount: 1500 },
@@ -33,23 +45,29 @@ export function calculateRoadmapPlan(
   dailyMinutes: number,
   studyDaysPerWeek: number,
   requiredStudyDays = 0,
+  newWordsPerDay = DEFAULT_TRIAL_WORDS_PER_DAY,
 ): RoadmapPlan {
   if (!TOEIC_TARGETS.includes(targetScore as (typeof TOEIC_TARGETS)[number])) {
     throw new Error('Mục tiêu TOEIC chỉ nhận một trong các mốc 450, 600, 700 hoặc 800.');
+  }
+  if (studyDaysPerWeek < MIN_STUDY_DAYS_PER_WEEK || studyDaysPerWeek > MAX_STUDY_DAYS_PER_WEEK) {
+    throw new Error('Lịch học phải có từ 5 đến 7 ngày mỗi tuần.');
   }
   const scoreGap = targetScore - currentScore;
   const targetConfig = TARGET_CONFIG[targetScore as keyof typeof TARGET_CONFIG];
   const scoreBasedStartingPhase = currentScore < 450 ? 1 : currentScore < 600 ? 2 : currentScore < 700 ? 3 : currentScore < 780 ? 4 : 5;
   const startingPhasePosition = Math.min(scoreBasedStartingPhase, targetConfig.endingPhasePosition);
   const weeklyMinutes = Math.max(1, dailyMinutes * studyDaysPerWeek);
-  const newWordsPerDay = dailyMinutes < 45 ? 15 : dailyMinutes < 90 ? 20 : 30;
+  if (!VOCABULARY_PACE_OPTIONS.includes(newWordsPerDay as (typeof VOCABULARY_PACE_OPTIONS)[number])) {
+    throw new Error('Nhịp từ mới chỉ nhận 5, 10, 15, 20, 25 hoặc 30 từ mỗi ngày.');
+  }
   const estimatedKnownVocabulary = Math.min(targetConfig.vocabularyCount, estimateKnownVocabulary(currentScore));
   const vocabularyGap = Math.max(0, targetConfig.vocabularyCount - estimatedKnownVocabulary);
   const vocabularyWeeks = Math.ceil(vocabularyGap / Math.max(1, newWordsPerDay * studyDaysPerWeek));
   const curriculumWeeks = requiredStudyDays > 0
     ? Math.ceil((requiredStudyDays * 60) / weeklyMinutes)
     : Math.ceil((scoreGap <= 100 ? 8 : scoreGap <= 200 ? 14 : scoreGap <= 300 ? 20 : 24) * (360 / weeklyMinutes));
-  const estimatedWeeks = Math.max(4, Math.min(52, Math.max(curriculumWeeks, vocabularyWeeks)));
+  const estimatedWeeks = Math.max(4, Math.max(curriculumWeeks, vocabularyWeeks));
 
   return {
     estimatedWeeks,

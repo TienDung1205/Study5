@@ -114,9 +114,13 @@ model LearningGoal {
   targetScore           Int       @default(800)
   currentScore          Int?
   examDate              DateTime?
+  examDateIsCustom      Boolean   @default(false)
   dailyMinutes          Int       @default(60)
   studyDays             Int[]     @default([1, 2, 3, 4, 5, 6])
   preferredHour         Int       @default(20)
+  preferredMinute       Int       @default(0)
+  newWordsPerDay        Int       @default(10)
+  vocabularyPaceSetAt   DateTime?
   estimatedWeeks        Int?
   startingPhasePosition Int       @default(1)
   endingPhasePosition   Int       @default(6)
@@ -238,6 +242,8 @@ model DailyAssignment {
   scheduledDate DateTime
   dueAt         DateTime
   planType      PlanType         @default(STANDARD)
+  newWordsLimit Int              @default(10)
+  vocabularyTerms String[]       @default([])
   status        AssignmentStatus @default(SCHEDULED)
   completedAt   DateTime?
   user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)

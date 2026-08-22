@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { ToastMessage } from '../../../components/feedback/ToastProvider';
 import { getJson, postJson } from '../../../services/api-client';
 import type { AiRecommendation, DailyAssignment, PlanType } from '../../../types/domain';
 
@@ -15,9 +16,9 @@ export function AiCoachPage() {
     <div className="coach-controls"><label>Tâm trạng<select value={mood} onChange={(e) => setMood(e.target.value)}><option value="great">Rất tốt</option><option value="normal">Bình thường</option><option value="tired">Mệt</option></select></label>
       <label>Thời gian ngày mai<input type="number" min={20} max={180} value={minutes} onChange={(e) => setMinutes(Number(e.target.value))} /></label>
       <button className="primary-button" onClick={() => analyze.mutate()} disabled={analyze.isPending}>{analyze.isPending ? 'Đang phân tích...' : 'Phân tích hôm nay'}</button></div>
-    {analyze.error && <p className="form-error">{analyze.error.message}</p>}
-    {select.isSuccess && <p className="success-text">Đã áp dụng cho ngày học {new Date(select.data.scheduledDate).toLocaleDateString('vi-VN')}.</p>}
-    {select.error && <p className="form-error">{select.error.message}</p>}
+    {analyze.error && <ToastMessage variant="error">{analyze.error.message}</ToastMessage>}
+    {select.isSuccess && <ToastMessage variant="success">Đã áp dụng cho ngày học {new Date(select.data.scheduledDate).toLocaleDateString('vi-VN')}.</ToastMessage>}
+    {select.error && <ToastMessage variant="error">{select.error.message}</ToastMessage>}
     {recommendation ? <><div className="coach-insight"><strong>Nhận xét hôm nay</strong><p>{recommendation.analysis.reason}</p>
       <small>Điểm mạnh: {recommendation.analysis.strength} · Cần chú ý: {recommendation.analysis.weakness} · Nguồn: {recommendation.provider}</small></div>
       <div className="plan-grid">{recommendation.planOptions.map((plan) => <article className={`plan-card${plan.recommended ? ' recommended' : ''}`} key={plan.type}>

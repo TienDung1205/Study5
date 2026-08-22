@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { ToastMessage } from '../../../components/feedback/ToastProvider';
 import { APP_NAME } from '../../../config/app';
 import { useAuthStore } from '../auth.store';
 import { PasswordInput } from '../components/PasswordInput';
@@ -22,7 +23,7 @@ export function LoginPage() {
     <p className="muted">Đăng nhập để tiếp tục bài học trong lộ trình.</p>
     <label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label>
     <label>Mật khẩu<PasswordInput value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required /></label>
-    {error && <p className="form-error">{error}</p>}
+    {error && <ToastMessage variant="error">{error}</ToastMessage>}
     <button className="primary-button" disabled={submitting}>{submitting ? 'Đang đăng nhập...' : 'Đăng nhập'}</button>
     <p>Chưa có tài khoản? <Link to="/register">Đăng ký</Link></p>
   </form></main>;
